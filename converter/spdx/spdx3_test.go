@@ -351,6 +351,24 @@ func TestToSPDX30_Graph(t *testing.T) {
 				"SPDXRef-Package-main-eb9d18a4-4784-445d-87f3-c67cf22746e9 -contains-> SPDXRef-Package-ok-c-id",
 			},
 		},
+		{
+			desc: "dependency_manifest_is_not_shared_across_scan_roots",
+			inv: inventory.Inventory{
+				Packages: []*extractor.Package{
+					{Name: "a", Version: "1.0.0", PURLType: purl.TypePyPi, ID: "a-id", ScanRoot: "/root-a", Location: extractor.PackageLocation{Descriptor: &location.Location{File: &location.File{Path: "req.txt"}}}},
+					{Name: "b", Version: "1.0.0", PURLType: purl.TypePyPi, ID: "b-id", ScanRoot: "/root-b", Location: extractor.PackageLocation{Descriptor: &location.Location{File: &location.File{Path: "req.txt"}}}},
+				},
+			},
+			want: []string{
+				"SPDXRef-DOCUMENT -describes-> SPDXRef-Package-main-95af5a25-3679-41ba-a2ff-6cd471c483f1",
+				"SPDXRef-Package-a-a-id -hasConcludedLicense-> SPDXRef-LicenseExpression-NOASSERTION",
+				"SPDXRef-Package-b-b-id -hasConcludedLicense-> SPDXRef-LicenseExpression-NOASSERTION",
+				"SPDXRef-Package-main-95af5a25-3679-41ba-a2ff-6cd471c483f1 -contains-> SPDXRef-Package-a-a-id",
+				"SPDXRef-Package-a-a-id -hasDependencyManifest-> SPDXRef-File-req.txt-e986c03c",
+				"SPDXRef-Package-main-95af5a25-3679-41ba-a2ff-6cd471c483f1 -contains-> SPDXRef-Package-b-b-id",
+				"SPDXRef-Package-b-b-id -hasDependencyManifest-> SPDXRef-File-req.txt-b1d487c2",
+			},
+		},
 	}
 
 	for _, tc := range testCases {

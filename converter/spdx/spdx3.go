@@ -296,7 +296,9 @@ func (b *builder3) hasDependencyManifest(pkg *extractor.Package, pIRI string) {
 	if filePath == "" {
 		return
 	}
-	pathHash := sha256.Sum256([]byte(filePath))
+	// The identity must match what GetFileSHA256 reads, otherwise packages found under different
+	// scan roots at the same relative path collapse into one File node carrying the first root's digest.
+	pathHash := sha256.Sum256([]byte(resolveScanPath(filePath, pkg.ScanRoot)))
 	fileIRI := b.iri(SPDXRefPrefix + "File-" + replaceSPDXIDInvalidChars(filePath) + "-" + hex.EncodeToString(pathHash[:])[:8])
 	if !b.seenFileIRI[fileIRI] {
 		b.seenFileIRI[fileIRI] = true
