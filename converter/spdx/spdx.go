@@ -173,11 +173,17 @@ func ToSPDX23(i inventory.Inventory, c Config) *v2_3.Document {
 	}
 }
 
+// resolveScanPath returns the path GetFileSHA256 will read for path under rootPath.
+func resolveScanPath(path, rootPath string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(rootPath, path)
+}
+
 // GetFileSHA256 returns the hex-encoded SHA256 digest of the file at path, relative to rootPath if not absolute.
 func GetFileSHA256(path, rootPath string) string {
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(rootPath, path)
-	}
+	path = resolveScanPath(path, rootPath)
 	if data, err := os.ReadFile(path); err == nil {
 		hash := sha256.Sum256(data)
 		return hex.EncodeToString(hash[:])
