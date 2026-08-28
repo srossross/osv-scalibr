@@ -243,6 +243,29 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 		},
 		{
+			Name: "editable project",
+			InputConfig: extracttest.ScanInputMockConfig{
+				Path: "testdata/editable-project.lock",
+			},
+			WantPackages: []*extractor.Package{
+				pkg(t, "id-certifi-1", "certifi", "2024.12.14", "testdata/editable-project.lock", 5, "id-requests-5"),
+				{
+					ID:        "id-emoji-2",
+					Name:      "emoji",
+					Version:   "2.14.0",
+					ParentIDs: map[string]bool{"root": true},
+					PURLType:  purl.TypePyPi,
+					Location:  extractor.LocationFromPathAndLine("testdata/editable-project.lock", 14),
+					Metadata: &osv.DepGroupMetadata{
+						DepGroupVals: []string{"cli"},
+					},
+				},
+				pkg(t, "id-iniconfig-3", "iniconfig", "2.0.0", "testdata/editable-project.lock", 23, "id-pytest-4"),
+				pkg(t, "id-pytest-4", "pytest", "8.3.4", "testdata/editable-project.lock", 32, "root"),
+				pkg(t, "id-requests-5", "requests", "2.32.3", "testdata/editable-project.lock", 44, "root"),
+			},
+		},
+		{
 			Name: "names outside package block",
 			InputConfig: extracttest.ScanInputMockConfig{
 				Path: "testdata/names-outside-package-block.lock",

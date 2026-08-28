@@ -47,8 +47,16 @@ const (
 )
 
 type uvLockPackageSource struct {
-	Virtual string `toml:"virtual"`
-	Git     string `toml:"git"`
+	Virtual  string `toml:"virtual"`
+	Editable string `toml:"editable"`
+	Git      string `toml:"git"`
+}
+
+// isScannedProject reports whether the package is the project being scanned
+// rather than one of its dependencies. uv writes "virtual" for a project
+// without a build system and "editable" for a packaged one.
+func (s uvLockPackageSource) isScannedProject() bool {
+	return s.Virtual == "." || s.Editable == "."
 }
 
 type uvLockPackage struct {
@@ -126,8 +134,9 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 	}
 
 	for i, lockPackage := range parsedLockfile.Packages {
-		// skip including the root "package", since its name and version are most likely arbitrary
-		if lockPackage.Source.Virtual == "." {
+		// skip including the root "package", since it is the subject of the scan
+		// rather than one of its own dependencies
+		if lockPackage.Source.isScannedProject() {
 			// Its dependencies, including those behind extras and dependency
 			// groups, are the project's direct dependencies.
 			rootDeps = append(rootDeps, tomldep.Names(lockPackage.Dependencies)...)
