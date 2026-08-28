@@ -29,8 +29,11 @@ import (
 
 	"github.com/google/osv-scalibr/extractor"
 	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
 	"github.com/google/osv-scalibr/extractor/filesystem/internal/linefinder"
 	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/internal/commitextractor"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/internal/depkey"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/internal/rootdeps"
 	"github.com/google/osv-scalibr/extractor/filesystem/osv"
 	"github.com/google/osv-scalibr/internal/dependencyfile/packagelockjson"
 	"github.com/google/osv-scalibr/inventory"
@@ -59,6 +62,41 @@ type packageDetails struct {
 }
 
 type npmPackageDetailsMap map[string]packageDetails
+
+// lockGraph records the install tree alongside the deduplicated package list.
+// Packages are deduplicated by "name@version" because two install locations of
+// one version are the same package, but resolving a dependency needs the
+// install path it was declared at, so both are kept.
+type lockGraph struct {
+	// keyByPath maps an install path ("node_modules/a/node_modules/b") to the
+	// deduplicated package key ("b@1.0.0").
+	keyByPath map[string]string
+	// depsByPath lists the dependency names declared at an install path.
+	depsByPath map[string][]string
+	// rootDeps are the names the project depends on directly, when the
+	// lockfile records them.
+	rootDeps []string
+}
+
+func newLockGraph() *lockGraph {
+	return &lockGraph{keyByPath: map[string]string{}, depsByPath: map[string][]string{}}
+}
+
+func (g *lockGraph) add(installPath, key string, deps ...map[string]string) {
+	g.keyByPath[installPath] = key
+	g.depsByPath[installPath] = mergeDepNames(deps...)
+}
+
+// mergeDepNames returns the sorted union of the keys of deps.
+func mergeDepNames(deps ...map[string]string) []string {
+	seen := map[string]bool{}
+	for _, m := range deps {
+		for name := range m {
+			seen[name] = true
+		}
+	}
+	return slices.Sorted(maps.Keys(seen))
+}
 
 // mergeNpmDepsGroups handles merging the dependency groups of packages within the
 // NPM ecosystem, since they can appear multiple times in the same dependency tree
@@ -91,14 +129,17 @@ func (pdm npmPackageDetailsMap) add(key string, details packageDetails) {
 	pdm[key] = details
 }
 
-func parseNpmLockDependencies(dependencies map[string]packagelockjson.Dependency, finder *linefinder.JSONLineFinder, parentPath string) map[string]packageDetails {
+func parseNpmLockDependencies(dependencies map[string]packagelockjson.Dependency, finder *linefinder.JSONLineFinder, parentPath, installPath string, graph *lockGraph) map[string]packageDetails {
 	details := npmPackageDetailsMap{}
 
 	for name, detail := range dependencies {
 		currentPath := parentPath + "." + gjson.Escape(name)
+		// The install directory is keyed by the entry name even when the
+		// package is aliased, so capture it before any alias rewrite below.
+		currentInstall := installPath + "node_modules/" + name
 
 		if detail.Dependencies != nil {
-			nestedDeps := parseNpmLockDependencies(detail.Dependencies, finder, currentPath+".dependencies")
+			nestedDeps := parseNpmLockDependencies(detail.Dependencies, finder, currentPath+".dependencies", currentInstall+"/", graph)
 			for k, v := range nestedDeps {
 				details.add(k, v)
 			}
@@ -144,6 +185,7 @@ func parseNpmLockDependencies(dependencies map[string]packagelockjson.Dependency
 			DepGroups: detail.DepGroups(),
 			Line:      line,
 		})
+		graph.add(currentInstall, name+"@"+version, detail.Requires)
 	}
 
 	return details
@@ -160,11 +202,14 @@ func extractNpmPackageName(name string) string {
 	return pkgName
 }
 
-func parseNpmLockPackages(packages map[string]packagelockjson.Package, finder *linefinder.JSONLineFinder) map[string]packageDetails {
+func parseNpmLockPackages(packages map[string]packagelockjson.Package, finder *linefinder.JSONLineFinder, graph *lockGraph) map[string]packageDetails {
 	details := npmPackageDetailsMap{}
 
 	for namePath, detail := range packages {
 		if namePath == "" {
+			// The project itself. It is not one of its own dependencies, but
+			// it names them.
+			graph.rootDeps = mergeDepNames(detail.Dependencies, detail.DevDependencies, detail.OptionalDependencies, detail.PeerDependencies)
 			continue
 		}
 
@@ -195,17 +240,19 @@ func parseNpmLockPackages(packages map[string]packagelockjson.Package, finder *l
 			DepGroups: detail.DepGroups(),
 			Line:      line,
 		})
+		graph.add(namePath, finalName+"@"+finalVersion,
+			detail.Dependencies, detail.DevDependencies, detail.OptionalDependencies, detail.PeerDependencies)
 	}
 
 	return details
 }
 
-func parseNpmLock(lockfile packagelockjson.LockFile, finder *linefinder.JSONLineFinder) map[string]packageDetails {
+func parseNpmLock(lockfile packagelockjson.LockFile, finder *linefinder.JSONLineFinder, graph *lockGraph) map[string]packageDetails {
 	if lockfile.Packages != nil {
-		return parseNpmLockPackages(lockfile.Packages, finder)
+		return parseNpmLockPackages(lockfile.Packages, finder, graph)
 	}
 
-	return parseNpmLockDependencies(lockfile.Dependencies, finder, "dependencies")
+	return parseNpmLockDependencies(lockfile.Dependencies, finder, "dependencies", "", graph)
 }
 
 // Extractor extracts npm packages from package-lock.json files.
@@ -326,10 +373,16 @@ func (e Extractor) extractPkgLock(_ context.Context, input *filesystem.ScanInput
 
 	finder := linefinder.NewJSONLineFinder(b)
 
-	packages := slices.Collect(maps.Values(parseNpmLock(*parsedLockfile, finder)))
-	result := make([]*extractor.Package, len(packages))
+	graph := newLockGraph()
+	details := parseNpmLock(*parsedLockfile, finder, graph)
 
-	for i, pkg := range packages {
+	// Iterate in key order so that extraction is deterministic.
+	keys := slices.Sorted(maps.Keys(details))
+	result := make([]*extractor.Package, len(keys))
+	pkgByKey := make(map[string]*extractor.Package, len(keys))
+
+	for i, key := range keys {
+		pkg := details[key]
 		if pkg.DepGroups == nil {
 			pkg.DepGroups = []string{}
 		}
@@ -346,7 +399,55 @@ func (e Extractor) extractPkgLock(_ context.Context, input *filesystem.ScanInput
 			},
 			Location: extractor.LocationFromPathAndLine(input.Path, pkg.Line),
 		}
+		pkgByKey[key] = result[i]
+	}
+
+	// v1 lockfiles do not record which entries are direct dependencies; the
+	// project's own manifest is the only source for that.
+	if graph.rootDeps == nil {
+		graph.rootDeps = slices.Sorted(maps.Keys(rootdeps.FromSiblingPackageJSON(input)))
+	}
+
+	if err := depgraph.ApplyEdges(result, npmEdges(graph, pkgByKey)); err != nil {
+		return result, err
 	}
 
 	return result, nil
+}
+
+// npmEdges resolves each declared dependency to the install it refers to,
+// following npm's nested resolution, then maps that install back to the
+// deduplicated package it belongs to.
+func npmEdges(graph *lockGraph, pkgByKey map[string]*extractor.Package) []depgraph.Edge {
+	paths := make(map[string]bool, len(graph.keyByPath))
+	for p := range graph.keyByPath {
+		paths[p] = true
+	}
+	resolver := depkey.Resolver{Segment: "node_modules/", Keys: paths}
+
+	child := func(fromPath, depName string) (*extractor.Package, bool) {
+		childPath, ok := resolver.Resolve(fromPath, depName)
+		if !ok {
+			return nil, false
+		}
+		pkg, ok := pkgByKey[graph.keyByPath[childPath]]
+		return pkg, ok
+	}
+
+	var edges []depgraph.Edge
+	for _, installPath := range slices.Sorted(maps.Keys(graph.depsByPath)) {
+		parent := pkgByKey[graph.keyByPath[installPath]]
+		for _, depName := range graph.depsByPath[installPath] {
+			if c, ok := child(installPath, depName); ok && c != parent {
+				edges = append(edges, depgraph.Edge{Parent: parent, Child: c})
+			}
+		}
+	}
+	for _, depName := range graph.rootDeps {
+		if c, ok := child("", depName); ok {
+			edges = append(edges, depgraph.Edge{Child: c})
+		}
+	}
+
+	return edges
 }

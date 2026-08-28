@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -27,7 +28,9 @@ import (
 
 	"github.com/google/osv-scalibr/extractor"
 	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
 	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/internal/commitextractor"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/internal/rootdeps"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/log"
 	"github.com/google/osv-scalibr/plugin"
@@ -50,6 +53,8 @@ var (
 	// Format for yarn.lock v1: `resolved "git+ssh://git@github.com:G-Rath/repo-2#hash"`
 	// Format for yarn.lock v2: `resolution: "@my-scope/my-first-package@https://github.com/my-org/my-first-pkg.git#commit=hash"`
 	yarnPackageResolutionRe = regexp.MustCompile(`^ {2}"?(?:resolution:|resolved)"? "([^ '"]+)"$`)
+	// Start of a dependencies block within an entry, in either lockfile format.
+	yarnDepBlockRe = regexp.MustCompile(`^"?(dependencies|optionalDependencies)"?:$`)
 )
 
 func shouldSkipYarnLine(line string) bool {
@@ -157,6 +162,57 @@ func determineYarnPackageResolution(props []string) string {
 	return ""
 }
 
+// yarnDescriptors returns the descriptors an entry header declares, e.g.
+// `"a@npm:^1.0.0", "a@npm:^1.2.0":` yields both. Each is registered under its
+// literal form and, for berry, under the protocol-less form the dependency
+// blocks use.
+func yarnDescriptors(header string) []string {
+	header = strings.TrimSuffix(strings.TrimSpace(header), ":")
+	var out []string
+	for _, d := range strings.Split(header, ",") {
+		d = strings.Trim(strings.TrimSpace(d), `"`)
+		if d == "" {
+			continue
+		}
+		out = append(out, d)
+		if name, constraint, ok := strings.Cut(d, "@npm:"); ok {
+			out = append(out, name+"@"+constraint)
+		}
+	}
+	return out
+}
+
+// yarnDependencies returns the name->constraint pairs of an entry's
+// dependencies blocks. v1 writes `    name "range"`, berry `    name: range`.
+func yarnDependencies(props []string) map[string]string {
+	deps := map[string]string{}
+	inBlock := false
+	for _, line := range props {
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		trimmed := strings.TrimSpace(line)
+		if indent <= 2 {
+			inBlock = yarnDepBlockRe.MatchString(trimmed)
+			continue
+		}
+		if !inBlock {
+			continue
+		}
+		name, constraint, ok := strings.Cut(trimmed, ": ")
+		if !ok {
+			name, constraint, ok = strings.Cut(trimmed, " ")
+			if !ok {
+				continue
+			}
+		}
+		name = strings.Trim(strings.TrimSpace(name), `"`)
+		constraint = strings.Trim(strings.TrimSpace(constraint), `"`)
+		if name != "" && constraint != "" {
+			deps[name] = constraint
+		}
+	}
+	return deps
+}
+
 func parseYarnPackageGroup(desc *packageDescription) *extractor.Package {
 	name := extractYarnPackageName(desc.header)
 	version := determineYarnPackageVersion(desc.props)
@@ -216,6 +272,10 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 	}
 
 	packages := make([]*extractor.Package, 0, len(packageGroups))
+	// Parallel to packages: the dependencies declared by packages[i].
+	deps := make([]map[string]string, 0, len(packageGroups))
+	// Every descriptor an entry answers to, mapped to that entry's package.
+	byDescriptor := map[string]*extractor.Package{}
 
 	for _, group := range packageGroups {
 		if group.header == "__metadata:" {
@@ -229,9 +289,50 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 		pkg := parseYarnPackageGroup(group)
 		pkg.Location = extractor.LocationFromPathAndLine(input.Path, group.lineNumber)
 		packages = append(packages, pkg)
+		deps = append(deps, yarnDependencies(group.props))
+		for _, d := range yarnDescriptors(group.header) {
+			byDescriptor[d] = pkg
+		}
+	}
+
+	edges := descriptorEdges(packages, deps, byDescriptor)
+	// yarn.lock does not record which entries are direct dependencies, so the
+	// project's own manifest is the only source for root edges.
+	for name, constraint := range rootdeps.FromSiblingPackageJSON(input) {
+		if child, ok := resolveDescriptor(byDescriptor, name, constraint); ok {
+			edges = append(edges, depgraph.Edge{Child: child})
+		}
+	}
+
+	if err := depgraph.ApplyEdges(packages, edges); err != nil {
+		return inventory.Inventory{Packages: packages}, err
 	}
 
 	return inventory.Inventory{Packages: packages}, nil
+}
+
+// descriptorEdges resolves each entry's declared dependencies to the entry that
+// answers to that descriptor. Descriptors that match no entry are dropped.
+func descriptorEdges(packages []*extractor.Package, deps []map[string]string, byDescriptor map[string]*extractor.Package) []depgraph.Edge {
+	var edges []depgraph.Edge
+	for i, parent := range packages {
+		for _, name := range slices.Sorted(maps.Keys(deps[i])) {
+			if child, ok := resolveDescriptor(byDescriptor, name, deps[i][name]); ok && child != parent {
+				edges = append(edges, depgraph.Edge{Parent: parent, Child: child})
+			}
+		}
+	}
+	return edges
+}
+
+// resolveDescriptor looks up name at constraint, trying the berry protocol form
+// for entries whose descriptors carry one.
+func resolveDescriptor(byDescriptor map[string]*extractor.Package, name, constraint string) (*extractor.Package, bool) {
+	if pkg, ok := byDescriptor[name+"@"+constraint]; ok {
+		return pkg, true
+	}
+	pkg, ok := byDescriptor[name+"@npm:"+constraint]
+	return pkg, ok
 }
 
 var _ filesystem.Extractor = Extractor{}

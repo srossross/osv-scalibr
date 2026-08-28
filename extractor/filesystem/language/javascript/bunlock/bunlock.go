@@ -30,6 +30,7 @@ import (
 	"github.com/google/osv-scalibr/extractor/filesystem"
 	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
 	"github.com/google/osv-scalibr/extractor/filesystem/internal/linefinder"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/internal/depkey"
 	"github.com/google/osv-scalibr/extractor/filesystem/osv"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/plugin"
@@ -152,50 +153,13 @@ func stringMap(meta map[string]any, key string) map[string]string {
 	return result
 }
 
-// resolveDepKey resolves dependency depName of the package at lockfile key
-// pkgKey to the key of the installed instance, following npm-style nesting:
-// "a/b" + "c" tries "a/b/c", "a/c", then "c".
-func resolveDepKey(pkgKey, depName string, keys map[string]bool) (string, bool) {
-	prefix := pkgKey
-	for {
-		candidate := depName
-		if prefix != "" {
-			candidate = prefix + "/" + depName
-		}
-		if candidate != pkgKey && keys[candidate] {
-			return candidate, true
-		}
-		if prefix == "" {
-			return "", false
-		}
-		prefix = stripLastInstallName(prefix)
-	}
-}
-
-// stripLastInstallName removes the last install-name segment from a
-// "/"-joined key prefix. A scoped name ("@scope/name") is a single segment.
-func stripLastInstallName(prefix string) string {
-	i := strings.LastIndex(prefix, "/")
-	if i == -1 {
-		return ""
-	}
-	head := prefix[:i]
-	j := strings.LastIndex(head, "/")
-	if strings.HasPrefix(head[j+1:], "@") {
-		if j == -1 {
-			return ""
-		}
-		return head[:j]
-	}
-	return head
-}
-
 // depEdges drops dependency names that resolve to no lockfile key.
 func depEdges(parent *extractor.Package, baseKey string, keySet map[string]bool, pkgByKey map[string]*extractor.Package, depMaps ...map[string]string) []depgraph.Edge {
+	resolver := depkey.Resolver{Keys: keySet}
 	var edges []depgraph.Edge
 	for _, m := range depMaps {
 		for _, depName := range slices.Sorted(maps.Keys(m)) {
-			if childKey, ok := resolveDepKey(baseKey, depName, keySet); ok {
+			if childKey, ok := resolver.Resolve(baseKey, depName); ok {
 				edges = append(edges, depgraph.Edge{Parent: parent, Child: pkgByKey[childKey]})
 			}
 		}

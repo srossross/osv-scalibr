@@ -15,6 +15,7 @@
 package pnpmlock_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -29,6 +30,15 @@ import (
 
 	cpb "github.com/google/osv-scalibr/binary/proto/config_go_proto"
 )
+
+// testIDGenerator produces IDs unique across duplicate package names, unlike
+// mockidgenerator, and resettable per subtest, unlike SequentialIDGenerator.
+type testIDGenerator struct{ counter int }
+
+func (g *testIDGenerator) GenerateID(name string) (string, error) {
+	g.counter++
+	return fmt.Sprintf("id-%s-%d", name, g.counter), nil
+}
 
 func TestExtractor_FileRequired(t *testing.T) {
 	tests := []struct {
@@ -104,6 +114,7 @@ func TestExtractor_Extract(t *testing.T) {
 			WantErr: extracttest.ContainsErrStr{Str: "invalid dependency path"},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-acorn-1",
 					Name:       "acorn",
 					Version:    "8.7.0",
 					PURLType:   purl.TypeNPM,
@@ -123,6 +134,7 @@ func TestExtractor_Extract(t *testing.T) {
 			WantErr: extracttest.ContainsErrStr{Str: "invalid dependency path: invalidpath1"},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-acorn-1",
 					Name:       "acorn",
 					Version:    "8.7.0",
 					PURLType:   purl.TypeNPM,
@@ -142,6 +154,7 @@ func TestExtractor_Extract(t *testing.T) {
 			WantErr: extracttest.ContainsErrStr{Str: "invalid dependency path: invalidpath2"},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-acorn-1",
 					Name:       "acorn",
 					Version:    "8.7.0",
 					PURLType:   purl.TypeNPM,
@@ -181,7 +194,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-acorn-1",
 					Name:       "acorn",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "8.7.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/one-package.yaml", 11),
@@ -199,7 +214,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-acorn-1",
 					Name:       "acorn",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "8.7.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/one-package-v6-lockfile.yaml", 10),
@@ -217,7 +234,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-acorn-1",
 					Name:       "acorn",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "8.7.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/one-package-dev.yaml", 11),
@@ -235,7 +254,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-@typescript-eslint/types-1",
 					Name:       "@typescript-eslint/types",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "5.13.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/scoped-packages.yaml", 11),
@@ -253,7 +274,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-@typescript-eslint/types-1",
 					Name:       "@typescript-eslint/types",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "5.57.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/scoped-packages-v6-lockfile.yaml", 10),
@@ -271,7 +294,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-acorn-jsx-1",
 					Name:       "acorn-jsx",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "5.3.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies.yaml", 13),
@@ -281,7 +306,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-acorn-2",
 					Name:       "acorn",
+					ParentIDs:  map[string]bool{"id-acorn-jsx-1": true, "root": true},
 					Version:    "8.7.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies.yaml", 21),
@@ -299,7 +326,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-js-tokens-1",
 					Name:       "js-tokens",
+					ParentIDs:  map[string]bool{"id-loose-envify-2": true},
 					Version:    "4.0.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-v6.yaml", 14),
@@ -309,7 +338,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-loose-envify-2",
 					Name:       "loose-envify",
+					ParentIDs:  map[string]bool{"id-react-4": true, "id-react-dom-3": true, "id-scheduler-5": true},
 					Version:    "1.4.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-v6.yaml", 18),
@@ -319,7 +350,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-react-dom-3",
 					Name:       "react-dom",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "18.2.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-v6.yaml", 25),
@@ -329,7 +362,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-react-4",
 					Name:       "react",
+					ParentIDs:  map[string]bool{"id-react-dom-3": true},
 					Version:    "18.2.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-v6.yaml", 35),
@@ -339,7 +374,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-scheduler-5",
 					Name:       "scheduler",
+					ParentIDs:  map[string]bool{"id-react-dom-3": true},
 					Version:    "0.23.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-v6.yaml", 42),
@@ -357,7 +394,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-@typescript-eslint/eslint-plugin-1",
 					Name:       "@typescript-eslint/eslint-plugin",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "5.13.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 17),
@@ -367,7 +406,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@typescript-eslint/parser-2",
 					Name:       "@typescript-eslint/parser",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/eslint-plugin-1": true, "root": true},
 					Version:    "5.13.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 44),
@@ -377,7 +418,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@typescript-eslint/type-utils-3",
 					Name:       "@typescript-eslint/type-utils",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/eslint-plugin-1": true},
 					Version:    "5.13.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 64),
@@ -387,7 +430,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@typescript-eslint/types-4",
 					Name:       "@typescript-eslint/types",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/parser-2": true, "id-@typescript-eslint/typescript-estree-5": true, "id-@typescript-eslint/utils-6": true},
 					Version:    "5.13.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 83),
@@ -397,7 +442,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@typescript-eslint/typescript-estree-5",
 					Name:       "@typescript-eslint/typescript-estree",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/parser-2": true, "id-@typescript-eslint/utils-6": true},
 					Version:    "5.13.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 88),
@@ -407,7 +454,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@typescript-eslint/utils-6",
 					Name:       "@typescript-eslint/utils",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/eslint-plugin-1": true, "id-@typescript-eslint/type-utils-3": true},
 					Version:    "5.13.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 109),
@@ -417,7 +466,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-eslint-utils-7",
 					Name:       "eslint-utils",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/utils-6": true, "id-eslint-8": true},
 					Version:    "3.0.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 127),
@@ -427,7 +478,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-eslint-8",
 					Name:       "eslint",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/eslint-plugin-1": true, "id-@typescript-eslint/parser-2": true, "id-@typescript-eslint/type-utils-3": true, "id-@typescript-eslint/utils-6": true, "id-eslint-utils-7": true, "root": true},
 					Version:    "8.10.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 137),
@@ -437,7 +490,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-tsutils-9",
 					Name:       "tsutils",
+					ParentIDs:  map[string]bool{"id-@typescript-eslint/eslint-plugin-1": true, "id-@typescript-eslint/type-utils-3": true, "id-@typescript-eslint/typescript-estree-5": true},
 					Version:    "3.21.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced.yaml", 181),
@@ -455,7 +510,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-js-tokens-1",
 					Name:       "js-tokens",
+					ParentIDs:  map[string]bool{"id-loose-envify-2": true},
 					Version:    "4.0.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-v6.yaml", 14),
@@ -465,7 +522,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-loose-envify-2",
 					Name:       "loose-envify",
+					ParentIDs:  map[string]bool{"id-react-4": true, "id-react-dom-3": true, "id-scheduler-5": true},
 					Version:    "1.4.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-v6.yaml", 18),
@@ -475,7 +534,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-react-dom-3",
 					Name:       "react-dom",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "18.3.0-canary-ab31a9ed2-20230824",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-v6.yaml", 25),
@@ -485,7 +546,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-react-4",
 					Name:       "react",
+					ParentIDs:  map[string]bool{"id-react-dom-3": true},
 					Version:    "18.3.0-canary-ab31a9ed2-20230824",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-v6.yaml", 35),
@@ -495,7 +558,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-scheduler-5",
 					Name:       "scheduler",
+					ParentIDs:  map[string]bool{"id-react-dom-3": true},
 					Version:    "0.24.0-canary-ab31a9ed2-20230824",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-v6.yaml", 42),
@@ -513,7 +578,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-js-tokens-1",
 					Name:       "js-tokens",
+					ParentIDs:  map[string]bool{"id-loose-envify-2": true},
 					Version:    "4.0.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-rc-v6.yaml", 14),
@@ -523,7 +590,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-loose-envify-2",
 					Name:       "loose-envify",
+					ParentIDs:  map[string]bool{"id-react-4": true, "id-react-dom-3": true, "id-scheduler-5": true},
 					Version:    "1.4.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-rc-v6.yaml", 18),
@@ -533,7 +602,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-react-dom-3",
 					Name:       "react-dom",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "18.0.0-rc.3",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-rc-v6.yaml", 25),
@@ -543,7 +614,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-react-4",
 					Name:       "react",
+					ParentIDs:  map[string]bool{"id-react-dom-3": true},
 					Version:    "18.2.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-rc-v6.yaml", 35),
@@ -553,7 +626,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-scheduler-5",
 					Name:       "scheduler",
+					ParentIDs:  map[string]bool{"id-react-dom-3": true},
 					Version:    "0.21.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/peer-dependencies-advanced-rc-v6.yaml", 42),
@@ -571,7 +646,9 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-aws-sdk-1",
 					Name:       "aws-sdk",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "2.1087.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 11),
@@ -581,7 +658,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-base64-js-2",
 					Name:       "base64-js",
+					ParentIDs:  map[string]bool{"id-buffer-3": true},
 					Version:    "1.5.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 26),
@@ -591,7 +670,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-buffer-3",
 					Name:       "buffer",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true},
 					Version:    "4.9.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 30),
@@ -601,7 +682,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-events-4",
 					Name:       "events",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true},
 					Version:    "1.1.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 38),
@@ -611,7 +694,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-ieee754-5",
 					Name:       "ieee754",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true, "id-buffer-3": true},
 					Version:    "1.1.13",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 43),
@@ -621,7 +706,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-isarray-6",
 					Name:       "isarray",
+					ParentIDs:  map[string]bool{"id-buffer-3": true},
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 47),
@@ -631,7 +718,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-jmespath-7",
 					Name:       "jmespath",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true},
 					Version:    "0.16.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 51),
@@ -641,7 +730,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-punycode-8",
 					Name:       "punycode",
+					ParentIDs:  map[string]bool{"id-url-11": true},
 					Version:    "1.3.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 56),
@@ -651,7 +742,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-querystring-9",
 					Name:       "querystring",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true, "id-url-11": true},
 					Version:    "0.2.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 60),
@@ -661,7 +754,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-sax-10",
 					Name:       "sax",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true, "id-xml2js-13": true},
 					Version:    "1.2.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 66),
@@ -671,7 +766,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-url-11",
 					Name:       "url",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true},
 					Version:    "0.10.3",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 70),
@@ -681,7 +778,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-uuid-12",
 					Name:       "uuid",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true},
 					Version:    "3.3.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 77),
@@ -691,7 +790,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-xml2js-13",
 					Name:       "xml2js",
+					ParentIDs:  map[string]bool{"id-aws-sdk-1": true},
 					Version:    "0.4.19",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 83),
@@ -701,7 +802,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-xmlbuilder-14",
 					Name:       "xmlbuilder",
+					ParentIDs:  map[string]bool{"id-xml2js-13": true},
 					Version:    "9.0.7",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-packages.yaml", 90),
@@ -719,6 +822,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-uuid-1",
 					Name:       "uuid",
 					Version:    "3.3.2",
 					PURLType:   purl.TypeNPM,
@@ -729,7 +833,9 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-uuid-2",
 					Name:       "uuid",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "8.3.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/multiple-versions.yaml", 19),
@@ -739,6 +845,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-xmlbuilder-3",
 					Name:       "xmlbuilder",
 					Version:    "9.0.7",
 					PURLType:   purl.TypeNPM,
@@ -757,6 +864,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-@my-org/my-package-1",
 					Name:       "@my-org/my-package",
 					Version:    "3.2.3",
 					PURLType:   purl.TypeNPM,
@@ -775,6 +883,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-foo-2",
 					Name:       "foo",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -785,6 +894,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@foo/bar-1",
 					Name:       "@foo/bar",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -795,6 +905,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-foo-7",
 					Name:       "foo",
 					Version:    "1.1.0",
 					PURLType:   purl.TypeNPM,
@@ -805,6 +916,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@foo/bar-6",
 					Name:       "@foo/bar",
 					Version:    "1.1.0",
 					PURLType:   purl.TypeNPM,
@@ -815,6 +927,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-foo-4",
 					Name:       "foo",
 					Version:    "1.2.0",
 					PURLType:   purl.TypeNPM,
@@ -825,6 +938,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-foo-5",
 					Name:       "foo",
 					Version:    "1.3.0",
 					PURLType:   purl.TypeNPM,
@@ -835,6 +949,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-foo-3",
 					Name:       "foo",
 					Version:    "1.4.0",
 					PURLType:   purl.TypeNPM,
@@ -853,6 +968,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-my-bitbucket-package-1",
 					Name:     "my-bitbucket-package",
 					Version:  "1.0.0",
 					PURLType: purl.TypeNPM,
@@ -865,6 +981,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-@my-scope/my-package-5",
 					Name:     "@my-scope/my-package",
 					Version:  "1.0.0",
 					PURLType: purl.TypeNPM,
@@ -877,6 +994,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-@my-scope/my-other-package-4",
 					Name:     "@my-scope/my-other-package",
 					Version:  "1.0.0",
 					PURLType: purl.TypeNPM,
@@ -889,6 +1007,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-faker-parser-2",
 					Name:     "faker-parser",
 					Version:  "0.0.1",
 					PURLType: purl.TypeNPM,
@@ -901,6 +1020,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-mocks-3",
 					Name:     "mocks",
 					Version:  "20.0.1",
 					PURLType: purl.TypeNPM,
@@ -921,6 +1041,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-my-file-package-5",
 					Name:       "my-file-package",
 					Version:    "0.0.0",
 					PURLType:   purl.TypeNPM,
@@ -931,6 +1052,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-a-local-package-2",
 					Name:       "a-local-package",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -941,6 +1063,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-a-nested-local-package-3",
 					Name:       "a-nested-local-package",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -951,6 +1074,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-one-up-1",
 					Name:       "one-up",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -961,6 +1085,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-one-up-with-peer-4",
 					Name:       "one-up-with-peer",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -976,6 +1101,9 @@ func TestExtractor_Extract(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := pnpmlock.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("pnpmlock.New: %v", err)

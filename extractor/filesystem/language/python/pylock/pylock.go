@@ -120,8 +120,9 @@ func (e Extractor) Extract(_ context.Context, input *filesystem.ScanInput) (inve
 	var rootDeps []string
 
 	for i, lockPackage := range parsedLockfile.Packages {
-		// this is likely the root package, which is sometimes included in the lockfile
-		if lockPackage.Version == "" && lockPackage.Directory.Path == "." {
+		// the scanned project itself, which is sometimes included in the lockfile;
+		// it is the subject of the scan rather than one of its own dependencies
+		if lockPackage.Directory.Path == "." {
 			// Its dependencies are the project's direct dependencies.
 			rootDeps = append(rootDeps, tomldep.Names(lockPackage.Dependencies)...)
 			continue

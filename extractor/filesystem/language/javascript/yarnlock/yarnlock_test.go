@@ -15,6 +15,7 @@
 package yarnlock_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/yarnlock"
@@ -22,6 +23,15 @@ import (
 
 	cpb "github.com/google/osv-scalibr/binary/proto/config_go_proto"
 )
+
+// testIDGenerator produces IDs unique across duplicate package names, unlike
+// mockidgenerator, and resettable per subtest, unlike SequentialIDGenerator.
+type testIDGenerator struct{ counter int }
+
+func (g *testIDGenerator) GenerateID(name string) (string, error) {
+	g.counter++
+	return fmt.Sprintf("id-%s-%d", name, g.counter), nil
+}
 
 func TestExtractor_FileRequired(t *testing.T) {
 	tests := []struct {

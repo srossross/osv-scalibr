@@ -26,6 +26,25 @@ import (
 	"github.com/google/osv-scalibr/testing/extracttest"
 )
 
+// pkgV2 builds an expected package from testdata/nested-v2/yarn.lock.
+func pkgV2(t *testing.T, id, name, version string, line int, parents ...string) *extractor.Package {
+	t.Helper()
+
+	ids := map[string]bool{}
+	for _, p := range parents {
+		ids[p] = true
+	}
+	return &extractor.Package{
+		ID:         id,
+		Name:       name,
+		Version:    version,
+		ParentIDs:  ids,
+		PURLType:   purl.TypeNPM,
+		Location:   extractor.LocationFromPathAndLine("testdata/nested-v2/yarn.lock", line),
+		SourceCode: &extractor.SourceCodeIdentifier{Commit: ""},
+	}
+}
+
 func TestExtractor_Extract_v2(t *testing.T) {
 	tests := []extracttest.TestTableEntry{
 		{
@@ -42,6 +61,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-balanced-match-1",
 					Name:     "balanced-match",
 					Version:  "1.0.2",
 					Location: extractor.LocationFromPathAndLine("testdata/one-package.v2.lock", 8),
@@ -59,6 +79,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-compare-func-1",
 					Name:     "compare-func",
 					Version:  "2.0.0",
 					PURLType: purl.TypeNPM,
@@ -68,6 +89,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-concat-map-2",
 					Name:     "concat-map",
 					Version:  "0.0.1",
 					PURLType: purl.TypeNPM,
@@ -85,6 +107,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-compare-func-1",
 					Name:     "compare-func",
 					Version:  "2.0.0",
 					PURLType: purl.TypeNPM,
@@ -94,6 +117,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-concat-map-2",
 					Name:     "concat-map",
 					Version:  "0.0.1",
 					PURLType: purl.TypeNPM,
@@ -111,6 +135,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-debug-1",
 					Name:     "debug",
 					Version:  "4.3.3",
 					PURLType: purl.TypeNPM,
@@ -120,6 +145,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-debug-2",
 					Name:     "debug",
 					Version:  "2.6.9",
 					PURLType: purl.TypeNPM,
@@ -129,6 +155,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-debug-3",
 					Name:     "debug",
 					Version:  "3.2.7",
 					PURLType: purl.TypeNPM,
@@ -146,6 +173,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-@babel/cli-1",
 					Name:     "@babel/cli",
 					Version:  "7.16.8",
 					PURLType: purl.TypeNPM,
@@ -155,6 +183,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-@babel/code-frame-2",
 					Name:     "@babel/code-frame",
 					Version:  "7.16.7",
 					PURLType: purl.TypeNPM,
@@ -164,6 +193,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-@babel/compat-data-3",
 					Name:     "@babel/compat-data",
 					Version:  "7.16.8",
 					PURLType: purl.TypeNPM,
@@ -181,6 +211,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-@nicolo-ribaudo/chokidar-2-1",
 					Name:     "@nicolo-ribaudo/chokidar-2",
 					Version:  "2.1.8-no-fsevents.3",
 					PURLType: purl.TypeNPM,
@@ -190,6 +221,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-gensync-2",
 					Name:     "gensync",
 					Version:  "1.0.0-beta.2",
 					PURLType: purl.TypeNPM,
@@ -207,6 +239,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-domino-1",
 					Name:     "domino",
 					Version:  "2.1.6+git",
 					PURLType: purl.TypeNPM,
@@ -216,6 +249,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-tslib-2",
 					Name:     "tslib",
 					Version:  "2.6.2",
 					PURLType: purl.TypeNPM,
@@ -233,6 +267,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-@my-scope/my-first-package-1",
 					Name:     "@my-scope/my-first-package",
 					Version:  "0.0.6",
 					PURLType: purl.TypeNPM,
@@ -242,6 +277,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-my-second-package-2",
 					Name:     "my-second-package",
 					Version:  "0.2.2",
 					PURLType: purl.TypeNPM,
@@ -251,6 +287,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-@typegoose/typegoose-3",
 					Name:     "@typegoose/typegoose",
 					Version:  "7.2.0",
 					PURLType: purl.TypeNPM,
@@ -260,6 +297,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-vuejs-4",
 					Name:     "vuejs",
 					Version:  "2.5.0",
 					PURLType: purl.TypeNPM,
@@ -269,6 +307,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-my-third-package-5",
 					Name:     "my-third-package",
 					Version:  "0.16.1-dev",
 					PURLType: purl.TypeNPM,
@@ -278,6 +317,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-my-node-sdk-6",
 					Name:     "my-node-sdk",
 					Version:  "1.1.0",
 					PURLType: purl.TypeNPM,
@@ -287,6 +327,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-really-great-7",
 					Name:     "is-really-great",
 					Version:  "1.0.0",
 					PURLType: purl.TypeNPM,
@@ -304,6 +345,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-my-package-1",
 					Name:     "my-package",
 					Version:  "0.0.2",
 					PURLType: purl.TypeNPM,
@@ -321,6 +363,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-@babel/helper-validator-identifier-3",
 					Name:     "@babel/helper-validator-identifier",
 					Version:  "7.22.20",
 					PURLType: purl.TypeNPM,
@@ -330,6 +373,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-ansi-regex-2",
 					Name:     "ansi-regex",
 					Version:  "6.0.1",
 					PURLType: purl.TypeNPM,
@@ -339,6 +383,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-ansi-regex-1",
 					Name:     "ansi-regex",
 					Version:  "5.0.1",
 					PURLType: purl.TypeNPM,
@@ -356,6 +401,7 @@ func TestExtractor_Extract_v2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-@ws/ansi-regex-1",
 					Name:     "@ws/ansi-regex",
 					Version:  "0.0.0-use.local",
 					PURLType: purl.TypeNPM,
@@ -365,20 +411,39 @@ func TestExtractor_Extract_v2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "ansi-regex",
-					Version:  "6.1.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPathAndLine("testdata/exclude-root.v2.lock", 16),
+					ID:        "id-ansi-regex-2",
+					Name:      "ansi-regex",
+					ParentIDs: map[string]bool{"id-@ws/ansi-regex-1": true},
+					Version:   "6.1.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPathAndLine("testdata/exclude-root.v2.lock", 16),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
 				},
 			},
 		},
+		{
+			Name: "nested dependencies with a sibling package.json",
+			InputConfig: extracttest.ScanInputMockConfig{
+				Path: "testdata/nested-v2/yarn.lock",
+			},
+			WantPackages: []*extractor.Package{
+				pkgV2(t, "id-ansi-styles-1", "ansi-styles", "4.3.0", 8, "id-chalk-2"),
+				pkgV2(t, "id-chalk-2", "chalk", "4.1.2", 16, "root"),
+				pkgV2(t, "id-color-convert-3", "color-convert", "2.0.1", 25, "id-ansi-styles-1"),
+				pkgV2(t, "id-color-name-4", "color-name", "1.1.4", 33, "id-color-convert-3"),
+				pkgV2(t, "id-has-flag-5", "has-flag", "4.0.0", 39, "id-supports-color-6"),
+				pkgV2(t, "id-supports-color-6", "supports-color", "7.2.0", 45, "id-chalk-2"),
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr := yarnlock.Extractor{}
 
 			scanInput := extracttest.GenerateScanInputMock(t, tt.InputConfig)
