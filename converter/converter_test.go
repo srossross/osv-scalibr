@@ -84,6 +84,10 @@ func TestToCDX(t *testing.T) {
 						PackageURL: "pkg:pypi/software@1.2.3",
 					},
 				}),
+				Dependencies: new([]cyclonedx.Dependency{
+					{Ref: "52fdfc07-2182-454f-963f-5f0f9a621d72", Dependencies: &[]string{}},
+					{Ref: "9566c74d-1003-4c4d-bbbb-0407d1e2c649", Dependencies: &[]string{}},
+				}),
 			},
 		},
 		{
@@ -131,6 +135,63 @@ func TestToCDX(t *testing.T) {
 						Version:    "1.2.3",
 						PackageURL: "pkg:pypi/software@1.2.3",
 					},
+				}),
+				Dependencies: new([]cyclonedx.Dependency{
+					{Ref: "81855ad8-681d-4d86-91e9-1e00167939cb", Dependencies: &[]string{}},
+					{Ref: "6694d2c4-22ac-4208-a007-2939487f6999", Dependencies: &[]string{}},
+				}),
+			},
+		},
+		{
+			desc: "Dependency_graph",
+			inv: inventory.Inventory{
+				Packages: []*extractor.Package{
+					{
+						Name: "direct", Version: "1.0.0", ID: "id-direct",
+						PURLType: purl.TypePyPi, Plugins: []string{wheelegg.Name},
+						ParentIDs: map[string]bool{"root": true},
+					},
+					{
+						Name: "parent", Version: "2.0.0", ID: "id-parent",
+						PURLType: purl.TypePyPi, Plugins: []string{wheelegg.Name},
+						ParentIDs: map[string]bool{"root": true},
+					},
+					{
+						Name: "child", Version: "3.0.0", ID: "id-child",
+						PURLType: purl.TypePyPi, Plugins: []string{wheelegg.Name},
+						ParentIDs: map[string]bool{"id-parent": true},
+					},
+				},
+			},
+			config: converter.CDXConfig{ComponentName: "sbom-3"},
+			want: &cyclonedx.BOM{
+				Metadata: &cyclonedx.Metadata{
+					Component: &cyclonedx.Component{
+						Name:   "sbom-3",
+						BOMRef: "eb9d18a4-4784-445d-87f3-c67cf22746e9",
+					},
+					Tools: &cyclonedx.ToolsChoice{
+						Components: &[]cyclonedx.Component{
+							{
+								Type: cyclonedx.ComponentTypeApplication,
+								Name: "SCALIBR",
+								ExternalReferences: new([]cyclonedx.ExternalReference{
+									{URL: "https://github.com/google/osv-scalibr", Type: cyclonedx.ERTypeWebsite},
+								}),
+							},
+						},
+					},
+				},
+				Components: new([]cyclonedx.Component{
+					{BOMRef: "95af5a25-3679-41ba-a2ff-6cd471c483f1", Type: "library", Name: "direct", Version: "1.0.0", PackageURL: "pkg:pypi/direct@1.0.0"},
+					{BOMRef: "5fb90bad-b37c-4821-b6d9-5526a41a9504", Type: "library", Name: "parent", Version: "2.0.0", PackageURL: "pkg:pypi/parent@2.0.0"},
+					{BOMRef: "680b4e7c-8b76-4a1b-9d49-d4955c848621", Type: "library", Name: "child", Version: "3.0.0", PackageURL: "pkg:pypi/child@3.0.0"},
+				}),
+				Dependencies: new([]cyclonedx.Dependency{
+					{Ref: "eb9d18a4-4784-445d-87f3-c67cf22746e9", Dependencies: &[]string{"95af5a25-3679-41ba-a2ff-6cd471c483f1", "5fb90bad-b37c-4821-b6d9-5526a41a9504"}},
+					{Ref: "95af5a25-3679-41ba-a2ff-6cd471c483f1", Dependencies: &[]string{}},
+					{Ref: "5fb90bad-b37c-4821-b6d9-5526a41a9504", Dependencies: &[]string{"680b4e7c-8b76-4a1b-9d49-d4955c848621"}},
+					{Ref: "680b4e7c-8b76-4a1b-9d49-d4955c848621", Dependencies: &[]string{}},
 				}),
 			},
 		},

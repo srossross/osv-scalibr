@@ -17,6 +17,8 @@
 package converter
 
 import (
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/CycloneDX/cyclonedx-go"
@@ -26,6 +28,7 @@ import (
 	spdxmeta "github.com/google/osv-scalibr/extractor/filesystem/sbom/spdx/metadata"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/inventory/location"
+	"github.com/google/osv-scalibr/log"
 	"github.com/google/osv-scalibr/purl"
 	"github.com/google/uuid"
 	"github.com/spdx/tools-golang/spdx/v2/v2_3"
@@ -90,6 +93,8 @@ func ToCDX(i inventory.Inventory, c CDXConfig) *cyclonedx.BOM {
 		bom.Metadata.Authors = &authors
 	}
 
+	scalibrToBOMRef := make(map[string]string)
+	pkgToBOMRef := make(map[*extractor.Package]string)
 	comps := make([]cyclonedx.Component, 0, len(i.Packages))
 	for _, pkg := range i.Packages {
 		comp := cyclonedx.Component{
@@ -97,6 +102,15 @@ func ToCDX(i inventory.Inventory, c CDXConfig) *cyclonedx.BOM {
 			Type:    cyclonedx.ComponentTypeLibrary,
 			Name:    pkg.Name,
 			Version: pkg.Version,
+		}
+		pkgToBOMRef[pkg] = comp.BOMRef
+		if pkg.ID != "" {
+			scalibrToBOMRef[pkg.ID] = comp.BOMRef
+		}
+		if pkg.Name != "" {
+			if _, exists := scalibrToBOMRef[pkg.Name]; !exists {
+				scalibrToBOMRef[pkg.Name] = comp.BOMRef
+			}
 		}
 		if p := ToPURL(pkg); p != nil {
 			comp.PackageURL = p.String()
@@ -118,7 +132,55 @@ func ToCDX(i inventory.Inventory, c CDXConfig) *cyclonedx.BOM {
 	}
 	bom.Components = &comps
 
+	deps := dependencies(i.Packages, pkgToBOMRef, bom.Metadata.Component.BOMRef, scalibrToBOMRef)
+	bom.Dependencies = &deps
+
 	return bom
+}
+
+// dependencies builds the CDX dependency graph from each package's ParentIDs.
+// The metadata component is the graph root, and every component gets an entry so
+// that an empty dependsOn means "no dependencies" rather than "unknown".
+func dependencies(
+	invPackages []*extractor.Package,
+	pkgToBOMRef map[*extractor.Package]string,
+	rootRef string,
+	scalibrToBOMRef map[string]string,
+) []cyclonedx.Dependency {
+	children := make(map[string][]string)
+	for _, pkg := range invPackages {
+		ref, ok := pkgToBOMRef[pkg]
+		if !ok {
+			continue
+		}
+		for _, parentID := range slices.Sorted(maps.Keys(pkg.ParentIDs)) {
+			parentRef := rootRef
+			if parentID != "root" {
+				var ok bool
+				if parentRef, ok = scalibrToBOMRef[parentID]; !ok {
+					log.Warnf("Parent package ID %q for package %v not found in inventory", parentID, pkg)
+					continue
+				}
+			}
+			children[parentRef] = append(children[parentRef], ref)
+		}
+	}
+
+	deps := make([]cyclonedx.Dependency, 0, len(invPackages)+1)
+	addDep := func(ref string) {
+		c := children[ref]
+		if c == nil {
+			c = []string{}
+		}
+		deps = append(deps, cyclonedx.Dependency{Ref: ref, Dependencies: &c})
+	}
+	addDep(rootRef)
+	for _, pkg := range invPackages {
+		if ref, ok := pkgToBOMRef[pkg]; ok {
+			addDep(ref)
+		}
+	}
+	return deps
 }
 
 func extractCPEs(p *extractor.Package) []string {
