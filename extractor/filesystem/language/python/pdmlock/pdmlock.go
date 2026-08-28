@@ -27,6 +27,8 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/google/osv-scalibr/extractor"
 	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/python/internal/pep503"
 	"github.com/google/osv-scalibr/extractor/filesystem/osv"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/plugin"
@@ -45,6 +47,8 @@ type pdmLockPackage struct {
 	Version  string   `toml:"version"`
 	Groups   []string `toml:"groups"`
 	Revision string   `toml:"revision"`
+	// PEP 508 requirement strings, e.g. `win-inet-pton; platform_system == "Windows"`.
+	Dependencies []string `toml:"dependencies"`
 }
 
 type pdmLockFile struct {
@@ -117,7 +121,35 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 		packages = append(packages, pkg)
 	}
 
+	// pdm.lock does not record which dependencies are direct (that's in
+	// pyproject.toml), so no root edges are created.
+	edges := depgraph.EdgesByName(packages, func(i int) []string {
+		return dependencyNames(parsedLockFile.Packages[i].Dependencies)
+	}, pep503.Normalize)
+	if err := depgraph.ApplyEdges(packages, edges); err != nil {
+		return inventory.Inventory{Packages: packages}, err
+	}
+
 	return inventory.Inventory{Packages: packages}, nil
+}
+
+func dependencyNames(reqs []string) []string {
+	names := make([]string, 0, len(reqs))
+	for _, req := range reqs {
+		if name := nameFromRequirement(req); name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// nameFromRequirement returns the distribution name of a PEP 508 requirement,
+// dropping any extras, version specifiers and environment markers.
+func nameFromRequirement(req string) string {
+	for _, sep := range []string{";", "[", "(", "@", "=", "<", ">", "!", "~", " "} {
+		req, _, _ = strings.Cut(req, sep)
+	}
+	return strings.TrimSpace(req)
 }
 
 // extractPackageName parses a TOML key-value line and returns the unquoted

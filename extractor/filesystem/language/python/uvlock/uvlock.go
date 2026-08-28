@@ -21,13 +21,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/google/osv-scalibr/extractor"
 	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/python/internal/pep503"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/python/internal/tomldep"
 	"github.com/google/osv-scalibr/extractor/filesystem/osv"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/plugin"
@@ -42,8 +47,16 @@ const (
 )
 
 type uvLockPackageSource struct {
-	Virtual string `toml:"virtual"`
-	Git     string `toml:"git"`
+	Virtual  string `toml:"virtual"`
+	Editable string `toml:"editable"`
+	Git      string `toml:"git"`
+}
+
+// isScannedProject reports whether the package is the project being scanned
+// rather than one of its dependencies. uv writes "virtual" for a project
+// without a build system and "editable" for a packaged one.
+func (s uvLockPackageSource) isScannedProject() bool {
+	return s.Virtual == "." || s.Editable == "."
 }
 
 type uvLockPackage struct {
@@ -51,15 +64,16 @@ type uvLockPackage struct {
 	Version string              `toml:"version"`
 	Source  uvLockPackageSource `toml:"source"`
 
+	Dependencies []tomldep.Dependency `toml:"dependencies"`
+
 	// uv stores "groups" as a table under "package" after all the packages, which due
 	// to how TOML works means it ends up being a property on the last package, even
 	// through in this context it's a global property rather than being per-package
-	Groups map[string][]uvOptionalDependency `toml:"optional-dependencies"`
+	Groups map[string][]tomldep.Dependency `toml:"optional-dependencies"`
+
+	DevGroups map[string][]tomldep.Dependency `toml:"dev-dependencies"`
 }
 
-type uvOptionalDependency struct {
-	Name string `toml:"name"`
-}
 type uvLockFile struct {
 	Version  int             `toml:"version"`
 	Packages []uvLockPackage `toml:"package"`
@@ -106,8 +120,11 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 	lineNums := findPackageLineNumbers(content, packageNames)
 
 	packages := make([]*extractor.Package, 0, len(parsedLockfile.Packages))
+	// Parallel to packages: the dependency names declared by packages[i].
+	depNames := make([][]string, 0, len(parsedLockfile.Packages))
+	var rootDeps []string
 
-	var groups map[string][]uvOptionalDependency
+	var groups map[string][]tomldep.Dependency
 
 	// uv stores "groups" as a table under "package" after all the packages, which due
 	// to how TOML works means it ends up being a property on the last package, even
@@ -117,8 +134,18 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 	}
 
 	for i, lockPackage := range parsedLockfile.Packages {
-		// skip including the root "package", since its name and version are most likely arbitrary
-		if lockPackage.Source.Virtual == "." {
+		// skip including the root "package", since it is the subject of the scan
+		// rather than one of its own dependencies
+		if lockPackage.Source.isScannedProject() {
+			// Its dependencies, including those behind extras and dependency
+			// groups, are the project's direct dependencies.
+			rootDeps = append(rootDeps, tomldep.Names(lockPackage.Dependencies)...)
+			for _, group := range slices.Sorted(maps.Keys(lockPackage.Groups)) {
+				rootDeps = append(rootDeps, tomldep.Names(lockPackage.Groups[group])...)
+			}
+			for _, group := range slices.Sorted(maps.Keys(lockPackage.DevGroups)) {
+				rootDeps = append(rootDeps, tomldep.Names(lockPackage.DevGroups[group])...)
+			}
 			continue
 		}
 
@@ -153,6 +180,13 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 			DepGroupVals: depGroupVals,
 		}
 		packages = append(packages, pkgDetails)
+		depNames = append(depNames, tomldep.Names(lockPackage.Dependencies))
+	}
+
+	edges := depgraph.EdgesByName(packages, func(i int) []string { return depNames[i] }, pep503.Normalize)
+	edges = append(edges, depgraph.RootEdgesByName(packages, rootDeps, pep503.Normalize)...)
+	if err := depgraph.ApplyEdges(packages, edges); err != nil {
+		return inventory.Inventory{Packages: packages}, err
 	}
 
 	return inventory.Inventory{Packages: packages}, nil

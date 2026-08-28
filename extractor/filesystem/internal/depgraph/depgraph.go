@@ -60,6 +60,37 @@ func ApplyEdges(packages []*extractor.Package, edges []Edge) error {
 // borne by several packages produces an edge to each of them; names that
 // match no package are dropped.
 func EdgesByName(packages []*extractor.Package, depsOf func(i int) []string, normalize func(string) string) []Edge {
+	lookup := indexByName(packages, normalize)
+	var edges []Edge
+	for i, parent := range packages {
+		for _, depName := range depsOf(i) {
+			for _, child := range lookup(depName) {
+				if child != parent {
+					edges = append(edges, Edge{Parent: parent, Child: child})
+				}
+			}
+		}
+	}
+	return edges
+}
+
+// RootEdgesByName resolves direct dependency names to root edges. Names that
+// match no package are dropped; a name borne by several packages produces an
+// edge to each of them.
+func RootEdgesByName(packages []*extractor.Package, depNames []string, normalize func(string) string) []Edge {
+	lookup := indexByName(packages, normalize)
+	var edges []Edge
+	for _, depName := range depNames {
+		for _, child := range lookup(depName) {
+			edges = append(edges, Edge{Child: child})
+		}
+	}
+	return edges
+}
+
+// indexByName returns a lookup of the packages bearing a name, comparing names
+// in their normalized form (normalize nil for exact matching).
+func indexByName(packages []*extractor.Package, normalize func(string) string) func(string) []*extractor.Package {
 	norm := func(s string) string { return s }
 	if normalize != nil {
 		norm = normalize
@@ -69,17 +100,7 @@ func EdgesByName(packages []*extractor.Package, depsOf func(i int) []string, nor
 		n := norm(pkg.Name)
 		byName[n] = append(byName[n], pkg)
 	}
-	var edges []Edge
-	for i, parent := range packages {
-		for _, depName := range depsOf(i) {
-			for _, child := range byName[norm(depName)] {
-				if child != parent {
-					edges = append(edges, Edge{Parent: parent, Child: child})
-				}
-			}
-		}
-	}
-	return edges
+	return func(name string) []*extractor.Package { return byName[norm(name)] }
 }
 
 // AddParent marks parentID as a parent of pkg, allocating ParentIDs if needed.

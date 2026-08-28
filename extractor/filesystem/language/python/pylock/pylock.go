@@ -27,6 +27,9 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/google/osv-scalibr/extractor"
 	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/python/internal/pep503"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/python/internal/tomldep"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/plugin"
 	"github.com/google/osv-scalibr/purl"
@@ -49,10 +52,11 @@ type pylockDirectory struct {
 }
 
 type pylockPackage struct {
-	Name      string          `toml:"name"`
-	Version   string          `toml:"version"`
-	VCS       pylockVCS       `toml:"vcs"`
-	Directory pylockDirectory `toml:"directory"`
+	Name         string               `toml:"name"`
+	Version      string               `toml:"version"`
+	VCS          pylockVCS            `toml:"vcs"`
+	Directory    pylockDirectory      `toml:"directory"`
+	Dependencies []tomldep.Dependency `toml:"dependencies"`
 }
 
 type pylockLockfile struct {
@@ -111,10 +115,15 @@ func (e Extractor) Extract(_ context.Context, input *filesystem.ScanInput) (inve
 	lineNums := findPackageLineNumbers(content, packageNames)
 
 	packages := make([]*extractor.Package, 0, len(parsedLockfile.Packages))
+	// Parallel to packages: the dependency names declared by packages[i].
+	depNames := make([][]string, 0, len(parsedLockfile.Packages))
+	var rootDeps []string
 
 	for i, lockPackage := range parsedLockfile.Packages {
 		// this is likely the root package, which is sometimes included in the lockfile
 		if lockPackage.Version == "" && lockPackage.Directory.Path == "." {
+			// Its dependencies are the project's direct dependencies.
+			rootDeps = append(rootDeps, tomldep.Names(lockPackage.Dependencies)...)
 			continue
 		}
 
@@ -130,6 +139,13 @@ func (e Extractor) Extract(_ context.Context, input *filesystem.ScanInput) (inve
 			}
 		}
 		packages = append(packages, pkgDetails)
+		depNames = append(depNames, tomldep.Names(lockPackage.Dependencies))
+	}
+
+	edges := depgraph.EdgesByName(packages, func(i int) []string { return depNames[i] }, pep503.Normalize)
+	edges = append(edges, depgraph.RootEdgesByName(packages, rootDeps, pep503.Normalize)...)
+	if err := depgraph.ApplyEdges(packages, edges); err != nil {
+		return inventory.Inventory{Packages: packages}, err
 	}
 
 	return inventory.Inventory{Packages: packages}, nil
