@@ -27,6 +27,7 @@ import (
 
 	"github.com/google/osv-scalibr/extractor"
 	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/log"
 	"github.com/google/osv-scalibr/plugin"
@@ -66,16 +67,20 @@ func (e Extractor) FileRequired(api filesystem.FileAPI) bool {
 	return slices.Contains([]string{"Gemfile.lock", "gems.locked"}, filepath.Base(api.Path()))
 }
 
-// specInfo contains the line content and line number for a spec in the lockfile.
+// specInfo contains the line content and line number for a spec in the lockfile,
+// along with the spec lines of its dependencies.
 type specInfo struct {
 	lineContent string
 	lineNumber  int
+	deps        []string
 }
 
 type gemlockSection struct {
 	name     string
 	revision string
 	specs    []specInfo
+	// entries holds the 2-space entries of a DEPENDENCIES section.
+	entries []string
 }
 
 func parseLockfileSections(input *filesystem.ScanInput) ([]*gemlockSection, error) {
@@ -108,12 +113,22 @@ func parseLockfileSections(input *filesystem.ScanInput) ([]*gemlockSection, erro
 				lineContent: strings.TrimPrefix(line, "    "),
 				lineNumber:  lineNumber,
 			})
+		} else if len(m[0]) == 6 {
+			// Indented with 6 spaces: a dependency of the preceding spec.
+			if currentSection == nil || len(currentSection.specs) == 0 {
+				continue
+			}
+			last := &currentSection.specs[len(currentSection.specs)-1]
+			last.deps = append(last.deps, strings.TrimPrefix(line, "      "))
 		} else if strings.HasPrefix(line, "  revision: ") {
 			// The commit for the given section. Always stored at an indentation level of 2.
 			if currentSection == nil {
 				return nil, errors.New("invalid lockfile: revision entry before a section declaration")
 			}
 			currentSection.revision = strings.TrimPrefix(line, "  revision: ")
+		} else if len(m[0]) == 2 && currentSection != nil && currentSection.name == "DEPENDENCIES" {
+			// Indented with 2 spaces under DEPENDENCIES: a direct dependency.
+			currentSection.entries = append(currentSection.entries, strings.TrimPrefix(line, "  "))
 		}
 		// We don't store info about any other entries at the moment.
 	}
@@ -132,7 +147,18 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 	}
 
 	pkgs := []*extractor.Package{}
+	// Parallel to pkgs: the dependency names declared by pkgs[i].
+	depNames := [][]string{}
+	var rootDeps []string
 	for _, section := range sections {
+		if section.name == "DEPENDENCIES" {
+			for _, e := range section.entries {
+				if name := specName(e); name != "" {
+					rootDeps = append(rootDeps, name)
+				}
+			}
+			continue
+		}
 		if !slices.Contains([]string{"GIT", "GEM", "PATH", "PLUGIN SOURCE"}, section.name) {
 			// Not a source section.
 			continue
@@ -156,9 +182,33 @@ func (e Extractor) Extract(ctx context.Context, input *filesystem.ScanInput) (in
 				}
 			}
 			pkgs = append(pkgs, p)
+			names := make([]string, 0, len(s.deps))
+			for _, d := range s.deps {
+				if n := specName(d); n != "" {
+					names = append(names, n)
+				}
+			}
+			depNames = append(depNames, names)
 		}
 	}
+
+	edges := depgraph.EdgesByName(pkgs, func(i int) []string { return depNames[i] }, nil)
+	edges = append(edges, depgraph.RootEdgesByName(pkgs, rootDeps, nil)...)
+	if err := depgraph.ApplyEdges(pkgs, edges); err != nil {
+		return inventory.Inventory{Packages: pkgs}, err
+	}
+
 	return inventory.Inventory{Packages: pkgs}, nil
+}
+
+// specName returns the gem name from a spec line such as `rack (~> 2.0)`,
+// `net-imap` or the pinned `rails!` form.
+func specName(line string) string {
+	m := nameVersionRegexp.FindStringSubmatch(line)
+	if len(m) < 2 {
+		return ""
+	}
+	return m[1]
 }
 
 var _ filesystem.Extractor = Extractor{}

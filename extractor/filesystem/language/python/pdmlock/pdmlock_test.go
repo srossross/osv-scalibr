@@ -15,6 +15,7 @@
 package pdmlock_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -87,6 +88,15 @@ func TestPdmExtractor_FileRequired(t *testing.T) {
 	}
 }
 
+// testIDGenerator produces IDs unique across duplicate package names, unlike
+// mockidgenerator, and resettable per subtest, unlike SequentialIDGenerator.
+type testIDGenerator struct{ counter int }
+
+func (g *testIDGenerator) GenerateID(name string) (string, error) {
+	g.counter++
+	return fmt.Sprintf("id-%s-%d", name, g.counter), nil
+}
+
 func TestExtractor_Extract(t *testing.T) {
 	tests := []extracttest.TestTableEntry{
 		{
@@ -118,6 +128,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-toml-1",
 					Name:     "toml",
 					Version:  "0.10.2",
 					PURLType: purl.TypePyPi,
@@ -135,6 +146,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-six-1",
 					Name:     "six",
 					Version:  "1.16.0",
 					PURLType: purl.TypePyPi,
@@ -144,6 +156,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-toml-2",
 					Name:     "toml",
 					Version:  "0.10.2",
 					PURLType: purl.TypePyPi,
@@ -161,6 +174,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-pyroute2-1",
 					Name:     "pyroute2",
 					Version:  "0.7.11",
 					PURLType: purl.TypePyPi,
@@ -170,6 +184,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-toml-2",
 					Name:     "toml",
 					Version:  "0.10.2",
 					PURLType: purl.TypePyPi,
@@ -179,10 +194,12 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
-					Name:     "win-inet-pton",
-					Version:  "1.1.0",
-					PURLType: purl.TypePyPi,
-					Location: extractor.LocationFromPathAndLine("testdata/dev-dependency.toml", 34),
+					ID:        "id-win-inet-pton-3",
+					Name:      "win-inet-pton",
+					ParentIDs: map[string]bool{"id-pyroute2-1": true},
+					Version:   "1.1.0",
+					PURLType:  purl.TypePyPi,
+					Location:  extractor.LocationFromPathAndLine("testdata/dev-dependency.toml", 34),
 					Metadata: &osv.DepGroupMetadata{
 						DepGroupVals: []string{"dev"},
 					},
@@ -196,6 +213,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-pyroute2-1",
 					Name:     "pyroute2",
 					Version:  "0.7.11",
 					PURLType: purl.TypePyPi,
@@ -205,6 +223,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-toml-2",
 					Name:     "toml",
 					Version:  "0.10.2",
 					PURLType: purl.TypePyPi,
@@ -214,10 +233,12 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
-					Name:     "win-inet-pton",
-					Version:  "1.1.0",
-					PURLType: purl.TypePyPi,
-					Location: extractor.LocationFromPathAndLine("testdata/optional-dependency.toml", 34),
+					ID:        "id-win-inet-pton-3",
+					Name:      "win-inet-pton",
+					ParentIDs: map[string]bool{"id-pyroute2-1": true},
+					Version:   "1.1.0",
+					PURLType:  purl.TypePyPi,
+					Location:  extractor.LocationFromPathAndLine("testdata/optional-dependency.toml", 34),
 					Metadata: &osv.DepGroupMetadata{
 						DepGroupVals: []string{"optional"},
 					},
@@ -231,6 +252,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-toml-1",
 					Name:     "toml",
 					Version:  "0.10.2",
 					PURLType: purl.TypePyPi,
@@ -251,6 +273,7 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-first-pkg-1",
 					Name:     "first-pkg",
 					Version:  "1.0.0",
 					PURLType: purl.TypePyPi,
@@ -260,6 +283,7 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-second-pkg-2",
 					Name:     "second-pkg",
 					Version:  "2.0.0",
 					PURLType: purl.TypePyPi,
@@ -274,6 +298,9 @@ func TestExtractor_Extract(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := pdmlock.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("pdmlock.New: %v", err)

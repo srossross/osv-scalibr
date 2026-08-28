@@ -15,6 +15,7 @@
 package pylock_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -105,6 +106,15 @@ func TestExtractor_FileRequired(t *testing.T) {
 	}
 }
 
+// testIDGenerator produces IDs unique across duplicate package names, unlike
+// mockidgenerator, and resettable per subtest, unlike SequentialIDGenerator.
+type testIDGenerator struct{ counter int }
+
+func (g *testIDGenerator) GenerateID(name string) (string, error) {
+	g.counter++
+	return fmt.Sprintf("id-%s-%d", name, g.counter), nil
+}
+
 func TestExtractor_Extract(t *testing.T) {
 	tests := []extracttest.TestTableEntry{
 		{
@@ -122,18 +132,22 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "attrs",
-					Version:  "25.1.0",
-					PURLType: purl.TypePyPi,
-					Location: extractor.LocationFromPathAndLine("testdata/example.toml", 7),
+					ID:        "id-attrs-1",
+					Name:      "attrs",
+					ParentIDs: map[string]bool{"id-cattrs-2": true},
+					Version:   "25.1.0",
+					PURLType:  purl.TypePyPi,
+					Location:  extractor.LocationFromPathAndLine("testdata/example.toml", 7),
 				},
 				{
+					ID:       "id-cattrs-2",
 					Name:     "cattrs",
 					Version:  "24.1.2",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/example.toml", 20),
 				},
 				{
+					ID:       "id-numpy-3",
 					Name:     "numpy",
 					Version:  "2.2.3",
 					PURLType: purl.TypePyPi,
@@ -148,12 +162,14 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-click-1",
 					Name:     "click",
 					Version:  "8.2.1",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/commits.toml", 8),
 				},
 				{
+					ID:       "id-mleroc-2",
 					Name:     "mleroc",
 					Version:  "0.1.0",
 					PURLType: purl.TypePyPi,
@@ -163,30 +179,35 @@ func TestExtractor_Extract(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-packaging-3",
 					Name:     "packaging",
 					Version:  "24.2",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/commits.toml", 24),
 				},
 				{
+					ID:       "id-pathspec-4",
 					Name:     "pathspec",
 					Version:  "0.12.1",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/commits.toml", 31),
 				},
 				{
+					ID:       "id-python-dateutil-5",
 					Name:     "python-dateutil",
 					Version:  "2.9.0.post0",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/commits.toml", 38),
 				},
 				{
+					ID:       "id-scikit-learn-6",
 					Name:     "scikit-learn",
 					Version:  "1.6.1",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/commits.toml", 45),
 				},
 				{
+					ID:       "id-tqdm-7",
 					Name:     "tqdm",
 					Version:  "4.67.1",
 					PURLType: purl.TypePyPi,
@@ -208,30 +229,35 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-annotated-types-1",
 					Name:     "annotated-types",
 					Version:  "0.7.0",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pip-full.toml", 5),
 				},
 				{
+					ID:       "id-packaging-2",
 					Name:     "packaging",
 					Version:  "25.0",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pip-full.toml", 16),
 				},
 				{
+					ID:       "id-pyproject-toml-3",
 					Name:     "pyproject-toml",
 					Version:  "0.1.0",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pip-full.toml", 27),
 				},
 				{
+					ID:       "id-setuptools-4",
 					Name:     "setuptools",
 					Version:  "80.9.0",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pip-full.toml", 38),
 				},
 				{
+					ID:       "id-wheel-5",
 					Name:     "wheel",
 					Version:  "0.45.1",
 					PURLType: purl.TypePyPi,
@@ -246,60 +272,70 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-certifi-1",
 					Name:     "certifi",
 					Version:  "2025.1.31",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 11),
 				},
 				{
+					ID:       "id-chardet-2",
 					Name:     "chardet",
 					Version:  "3.0.4",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 24),
 				},
 				{
+					ID:       "id-charset-normalizer-3",
 					Name:     "charset-normalizer",
 					Version:  "2.0.12",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 37),
 				},
 				{
+					ID:       "id-colorama-4",
 					Name:     "colorama",
 					Version:  "0.3.9",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 50),
 				},
 				{
+					ID:       "id-idna-5",
 					Name:     "idna",
 					Version:  "2.7",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 63),
 				},
 				{
+					ID:       "id-py-6",
 					Name:     "py",
 					Version:  "1.4.34",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 76),
 				},
 				{
+					ID:       "id-pytest-7",
 					Name:     "pytest",
 					Version:  "3.2.5",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 89),
 				},
 				{
+					ID:       "id-requests-8",
 					Name:     "requests",
 					Version:  "2.27.1",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 102),
 				},
 				{
+					ID:       "id-setuptools-9",
 					Name:     "setuptools",
 					Version:  "39.2.0",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/pdm-full.toml", 115),
 				},
 				{
+					ID:       "id-urllib3-10",
 					Name:     "urllib3",
 					Version:  "1.26.20",
 					PURLType: purl.TypePyPi,
@@ -314,12 +350,14 @@ func TestExtractor_Extract(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-first-pkg-1",
 					Name:     "first-pkg",
 					Version:  "1.0.0",
 					PURLType: purl.TypePyPi,
 					Location: extractor.LocationFromPathAndLine("testdata/names-outside-package-block.toml", 7),
 				},
 				{
+					ID:       "id-second-pkg-2",
 					Name:     "second-pkg",
 					Version:  "2.0.0",
 					PURLType: purl.TypePyPi,
@@ -338,6 +376,9 @@ func TestExtractor_Extract(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := pylock.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("pylock.New: %v", err)
