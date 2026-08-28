@@ -108,7 +108,9 @@ func ToCDX(i inventory.Inventory, c CDXConfig) *cyclonedx.BOM {
 			scalibrToBOMRef[pkg.ID] = comp.BOMRef
 		}
 		if pkg.Name != "" {
-			scalibrToBOMRef[pkg.Name] = comp.BOMRef
+			if _, exists := scalibrToBOMRef[pkg.Name]; !exists {
+				scalibrToBOMRef[pkg.Name] = comp.BOMRef
+			}
 		}
 		if p := ToPURL(pkg); p != nil {
 			comp.PackageURL = p.String()
