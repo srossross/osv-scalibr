@@ -76,10 +76,24 @@ type lockGraph struct {
 	// rootDeps are the names the project depends on directly, when the
 	// lockfile records them.
 	rootDeps []string
+	// linkTargets maps a symlink install path ("node_modules/w") to the path
+	// of the package it points at ("packages/w").
+	linkTargets map[string]string
 }
 
 func newLockGraph() *lockGraph {
-	return &lockGraph{keyByPath: map[string]string{}, depsByPath: map[string][]string{}}
+	return &lockGraph{keyByPath: map[string]string{}, depsByPath: map[string][]string{}, linkTargets: map[string]string{}}
+}
+
+// resolveLinks points each symlink install path at the key of the package it
+// links to, so that a dependency resolving through the symlink lands on the
+// real package. Links whose target is not itself a package entry are dropped.
+func (g *lockGraph) resolveLinks() {
+	for linkPath, target := range g.linkTargets {
+		if key, ok := g.keyByPath[target]; ok {
+			g.keyByPath[linkPath] = key
+		}
+	}
 }
 
 func (g *lockGraph) add(installPath, key string, deps ...map[string]string) {
@@ -213,6 +227,13 @@ func parseNpmLockPackages(packages map[string]packagelockjson.Package, finder *l
 			continue
 		}
 
+		if detail.Link {
+			// A symlink to a workspace member, which has its own entry under
+			// the path this resolves to.
+			graph.linkTargets[namePath] = detail.Resolved
+			continue
+		}
+
 		finalName := detail.Name
 		if finalName == "" {
 			finalName = extractNpmPackageName(namePath)
@@ -243,6 +264,8 @@ func parseNpmLockPackages(packages map[string]packagelockjson.Package, finder *l
 		graph.add(namePath, finalName+"@"+finalVersion,
 			detail.Dependencies, detail.DevDependencies, detail.OptionalDependencies, detail.PeerDependencies)
 	}
+
+	graph.resolveLinks()
 
 	return details
 }

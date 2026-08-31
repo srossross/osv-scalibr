@@ -30,6 +30,7 @@ type packageJSON struct {
 	Dependencies         map[string]string `json:"dependencies"`
 	DevDependencies      map[string]string `json:"devDependencies"`
 	OptionalDependencies map[string]string `json:"optionalDependencies"`
+	PeerDependencies     map[string]string `json:"peerDependencies"`
 }
 
 // FromSiblingPackageJSON returns the name->range pairs declared by the
@@ -65,8 +66,8 @@ func FromSiblingPackageJSON(input *filesystem.ScanInput) map[string]string {
 		return nil
 	}
 
-	deps := make(map[string]string, len(manifest.Dependencies)+len(manifest.DevDependencies)+len(manifest.OptionalDependencies))
-	for _, m := range []map[string]string{manifest.Dependencies, manifest.DevDependencies, manifest.OptionalDependencies} {
+	deps := make(map[string]string, len(manifest.Dependencies)+len(manifest.DevDependencies)+len(manifest.OptionalDependencies)+len(manifest.PeerDependencies))
+	for _, m := range []map[string]string{manifest.Dependencies, manifest.DevDependencies, manifest.OptionalDependencies, manifest.PeerDependencies} {
 		for name, constraint := range m {
 			deps[name] = constraint
 		}

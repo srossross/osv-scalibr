@@ -97,8 +97,9 @@ func (d *pnpmRootDep) UnmarshalYAML(unmarshal func(any) error) error {
 
 // pnpmImporter is a workspace member's direct dependencies.
 type pnpmImporter struct {
-	Dependencies    map[string]pnpmRootDep `yaml:"dependencies,omitempty"`
-	DevDependencies map[string]pnpmRootDep `yaml:"devDependencies,omitempty"`
+	Dependencies         map[string]pnpmRootDep `yaml:"dependencies,omitempty"`
+	DevDependencies      map[string]pnpmRootDep `yaml:"devDependencies,omitempty"`
+	OptionalDependencies map[string]pnpmRootDep `yaml:"optionalDependencies,omitempty"`
 }
 
 type pnpmLockfile struct {
@@ -112,12 +113,13 @@ type pnpmLockfile struct {
 }
 
 type pnpmLockfileRaw struct {
-	Version         string                     `yaml:"lockfileVersion"`
-	Packages        map[string]pnpmLockPackage `yaml:"packages,omitempty"`
-	Snapshots       map[string]pnpmSnapshot    `yaml:"snapshots,omitempty"`
-	Importers       map[string]pnpmImporter    `yaml:"importers,omitempty"`
-	Dependencies    map[string]pnpmRootDep     `yaml:"dependencies,omitempty"`
-	DevDependencies map[string]pnpmRootDep     `yaml:"devDependencies,omitempty"`
+	Version              string                     `yaml:"lockfileVersion"`
+	Packages             map[string]pnpmLockPackage `yaml:"packages,omitempty"`
+	Snapshots            map[string]pnpmSnapshot    `yaml:"snapshots,omitempty"`
+	Importers            map[string]pnpmImporter    `yaml:"importers,omitempty"`
+	Dependencies         map[string]pnpmRootDep     `yaml:"dependencies,omitempty"`
+	DevDependencies      map[string]pnpmRootDep     `yaml:"devDependencies,omitempty"`
+	OptionalDependencies map[string]pnpmRootDep     `yaml:"optionalDependencies,omitempty"`
 }
 
 // UnmarshalYAML is a custom unmarshalling function for handling the lockfile
@@ -139,7 +141,11 @@ func (l *pnpmLockfile) UnmarshalYAML(unmarshal func(any) error) error {
 	l.Packages = raw.Packages
 	l.Snapshots = raw.Snapshots
 	l.Importers = raw.Importers
-	l.Root = pnpmImporter{Dependencies: raw.Dependencies, DevDependencies: raw.DevDependencies}
+	l.Root = pnpmImporter{
+		Dependencies:         raw.Dependencies,
+		DevDependencies:      raw.DevDependencies,
+		OptionalDependencies: raw.OptionalDependencies,
+	}
 
 	return nil
 }
@@ -331,7 +337,7 @@ func pnpmEdges(lockfile pnpmLockfile, pkgByKey map[string]*extractor.Package) []
 		roots = append(roots, root)
 	}
 	for _, importer := range roots {
-		for _, m := range []map[string]pnpmRootDep{importer.Dependencies, importer.DevDependencies} {
+		for _, m := range []map[string]pnpmRootDep{importer.Dependencies, importer.DevDependencies, importer.OptionalDependencies} {
 			for _, name := range slices.Sorted(maps.Keys(m)) {
 				if child, ok := pkgByKey[pnpmDepKey(name, m[name].Version, lockfile.Version)]; ok {
 					edges = append(edges, depgraph.Edge{Child: child})
@@ -346,10 +352,21 @@ func pnpmEdges(lockfile pnpmLockfile, pkgByKey map[string]*extractor.Package) []
 // pnpmDepKey builds the packages-section key that a name and resolved version
 // refer to. v9 keys read "name@version", earlier ones "/name/version" (v5) and
 // "/name@version" (v6).
+//
+// An aliased dependency ("foo: npm:bar@^1") is declared under the alias but
+// resolves to the target's own key, which pnpm records as the version: a
+// dependency path in v5 and v6, "name@version" in v9.
 func pnpmDepKey(name, version string, lockfileVersion float64) string {
+	if strings.HasPrefix(version, "/") {
+		return version
+	}
 	switch {
 	case lockfileVersion >= 9.0:
-		return name + "@" + stripPnpmPeerSuffix(version)
+		version = stripPnpmPeerSuffix(version)
+		if strings.Contains(strings.TrimPrefix(version, "@"), "@") {
+			return version
+		}
+		return name + "@" + version
 	case lockfileVersion >= 6.0:
 		return "/" + name + "@" + version
 	default:

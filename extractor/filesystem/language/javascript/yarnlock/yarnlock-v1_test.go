@@ -648,6 +648,32 @@ func TestExtractor_Extract_v1(t *testing.T) {
 				pkgV1(t, "id-supports-color-8", "supports-color", "7.2.0", 42, "id-chalk-2"),
 			},
 		},
+		{
+			Name: "peer dependencies",
+			InputConfig: extracttest.ScanInputMockConfig{
+				Path: "testdata/peer-deps/yarn.lock",
+			},
+			WantPackages: []*extractor.Package{
+				{
+					ID:         "id-a-1",
+					Name:       "a",
+					Version:    "1.0.0",
+					ParentIDs:  map[string]bool{"root": true},
+					PURLType:   purl.TypeNPM,
+					Location:   extractor.LocationFromPathAndLine("testdata/peer-deps/yarn.lock", 5),
+					SourceCode: &extractor.SourceCodeIdentifier{Commit: ""},
+				},
+				{
+					ID:         "id-react-2",
+					Name:       "react",
+					Version:    "17.0.2",
+					ParentIDs:  map[string]bool{"root": true, "id-a-1": true},
+					PURLType:   purl.TypeNPM,
+					Location:   extractor.LocationFromPathAndLine("testdata/peer-deps/yarn.lock", 11),
+					SourceCode: &extractor.SourceCodeIdentifier{Commit: ""},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

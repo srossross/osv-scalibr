@@ -699,6 +699,42 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "workspace symlinks resolve to the linked package",
+			InputConfig: extracttest.ScanInputMockConfig{
+				Path: "testdata/workspace-link/package-lock.json",
+			},
+			WantPackages: []*extractor.Package{
+				{
+					ID:        "id-lodash-1",
+					Name:      "lodash",
+					ParentIDs: map[string]bool{"id-w-2": true},
+					Version:   "4.17.21",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/workspace-link/package-lock.json"),
+					SourceCode: &extractor.SourceCodeIdentifier{
+						Commit: "",
+					},
+					Metadata: &osv.DepGroupMetadata{
+						DepGroupVals: []string{},
+					},
+				},
+				{
+					ID:        "id-w-2",
+					Name:      "w",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/workspace-link/package-lock.json"),
+					SourceCode: &extractor.SourceCodeIdentifier{
+						Commit: "",
+					},
+					Metadata: &osv.DepGroupMetadata{
+						DepGroupVals: []string{},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
