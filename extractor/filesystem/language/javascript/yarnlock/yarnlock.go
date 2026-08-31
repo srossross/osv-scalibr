@@ -54,7 +54,7 @@ var (
 	// Format for yarn.lock v2: `resolution: "@my-scope/my-first-package@https://github.com/my-org/my-first-pkg.git#commit=hash"`
 	yarnPackageResolutionRe = regexp.MustCompile(`^ {2}"?(?:resolution:|resolved)"? "([^ '"]+)"$`)
 	// Start of a dependencies block within an entry, in either lockfile format.
-	yarnDepBlockRe = regexp.MustCompile(`^"?(dependencies|optionalDependencies)"?:$`)
+	yarnDepBlockRe = regexp.MustCompile(`^"?(dependencies|optionalDependencies|peerDependencies)"?:$`)
 )
 
 func shouldSkipYarnLine(line string) bool {

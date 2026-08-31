@@ -1,0 +1,10 @@
+{
+  "name": "root",
+  "version": "1.0.0",
+  "dependencies": {
+    "a": "^1.0.0"
+  },
+  "peerDependencies": {
+    "react": "^17.0.0"
+  }
+}

@@ -370,6 +370,26 @@ func TestExtractor_Extract_v9(t *testing.T) {
 			},
 		},
 		{
+			Name: "aliased dependency",
+			InputConfig: extracttest.ScanInputMockConfig{
+				Path: "testdata/alias.v9.yaml",
+			},
+			WantPackages: []*extractor.Package{
+				{
+					ID:         "id-ansi-regex-1",
+					Name:       "ansi-regex",
+					ParentIDs:  map[string]bool{"root": true},
+					Version:    "5.0.1",
+					PURLType:   purl.TypeNPM,
+					Location:   extractor.LocationFromPathAndLine("testdata/alias.v9.yaml", 13),
+					SourceCode: &extractor.SourceCodeIdentifier{},
+					Metadata: &osv.DepGroupMetadata{
+						DepGroupVals: []string{},
+					},
+				},
+			},
+		},
+		{
 			Name: "mixed groups",
 			InputConfig: extracttest.ScanInputMockConfig{
 				Path: "testdata/mixed-groups.v9.yaml",
@@ -390,6 +410,7 @@ func TestExtractor_Extract_v9(t *testing.T) {
 				{
 					ID:         "id-uuid-3",
 					Name:       "uuid",
+					ParentIDs:  map[string]bool{"root": true},
 					Version:    "8.3.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/mixed-groups.v9.yaml", 33),

@@ -1,0 +1,19 @@
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      aliased-name:
+        specifier: npm:ansi-regex@^5.0.0
+        version: ansi-regex@5.0.1
+
+packages:
+
+  ansi-regex@5.0.1:
+    resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
+    engines: {node: '>=8'}
+
+snapshots:
+
+  ansi-regex@5.0.1: {}
