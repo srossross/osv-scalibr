@@ -54,6 +54,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-wrappy-1",
 					Name:       "wrappy",
 					Version:    "1.0.2",
 					PURLType:   purl.TypeNPM,
@@ -72,6 +73,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-wrappy-1",
 					Name:       "wrappy",
 					Version:    "1.0.2",
 					PURLType:   purl.TypeNPM,
@@ -90,6 +92,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-wrappy-2",
 					Name:       "wrappy",
 					Version:    "1.0.2",
 					PURLType:   purl.TypeNPM,
@@ -100,6 +103,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-1",
 					Name:       "supports-color",
 					Version:    "5.5.0",
 					PURLType:   purl.TypeNPM,
@@ -118,6 +122,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-wrappy-2",
 					Name:       "wrappy",
 					Version:    "1.0.2",
 					PURLType:   purl.TypeNPM,
@@ -128,6 +133,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@babel/code-frame-1",
 					Name:       "@babel/code-frame",
 					Version:    "7.0.0",
 					PURLType:   purl.TypeNPM,
@@ -146,6 +152,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-postcss-2",
 					Name:       "postcss",
 					Version:    "6.0.23",
 					PURLType:   purl.TypeNPM,
@@ -156,7 +163,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-3",
 					Name:       "postcss",
+					ParentIDs:  map[string]bool{"id-postcss-calc-1": true},
 					Version:    "7.0.16",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies.v1.json"),
@@ -166,6 +175,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-calc-1",
 					Name:       "postcss-calc",
 					Version:    "7.0.1",
 					PURLType:   purl.TypeNPM,
@@ -176,7 +186,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-5",
 					Name:       "supports-color",
+					ParentIDs:  map[string]bool{"id-postcss-3": true},
 					Version:    "6.1.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies.v1.json"),
@@ -186,7 +198,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-4",
 					Name:       "supports-color",
+					ParentIDs:  map[string]bool{"id-postcss-2": true},
 					Version:    "5.5.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies.v1.json"),
@@ -204,6 +218,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-supports-color-37",
 					Name:       "supports-color",
 					Version:    "2.0.0",
 					PURLType:   purl.TypeNPM,
@@ -214,7 +229,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-display-values-24",
 					Name:       "postcss-normalize-display-values",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -224,7 +241,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-timing-functions-28",
 					Name:       "postcss-normalize-timing-functions",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -234,7 +253,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-string-27",
 					Name:       "postcss-normalize-string",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -244,7 +265,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-whitespace-31",
 					Name:       "postcss-normalize-whitespace",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -254,6 +277,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-39",
 					Name:       "supports-color",
 					Version:    "6.1.0",
 					PURLType:   purl.TypeNPM,
@@ -264,7 +288,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-cssnano-preset-default-5",
 					Name:       "cssnano-preset-default",
+					ParentIDs:  map[string]bool{"id-cssnano-7": true},
 					Version:    "4.0.7",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -274,7 +300,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-merge-longhand-17",
 					Name:       "postcss-merge-longhand",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.11",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -284,7 +312,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-discard-overridden-15",
 					Name:       "postcss-discard-overridden",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -294,7 +324,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-reduce-transforms-34",
 					Name:       "postcss-reduce-transforms",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -304,7 +336,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-svgo-35",
 					Name:       "postcss-svgo",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -314,7 +348,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-ordered-values-32",
 					Name:       "postcss-ordered-values",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.1.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -324,7 +360,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-minify-selectors-22",
 					Name:       "postcss-minify-selectors",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -334,6 +372,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-babel-code-frame-3",
 					Name:       "babel-code-frame",
 					Version:    "6.26.0",
 					PURLType:   purl.TypeNPM,
@@ -344,7 +383,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-css-declaration-sorter-4",
 					Name:       "css-declaration-sorter",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -354,7 +395,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-url-30",
 					Name:       "postcss-normalize-url",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -364,7 +407,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-minify-params-21",
 					Name:       "postcss-minify-params",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -374,6 +419,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-38",
 					Name:       "supports-color",
 					Version:    "5.5.0",
 					PURLType:   purl.TypeNPM,
@@ -384,7 +430,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-colormin-10",
 					Name:       "postcss-colormin",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.3",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -394,6 +442,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-autoprefixer-2",
 					Name:       "autoprefixer",
 					Version:    "9.5.1",
 					PURLType:   purl.TypeNPM,
@@ -404,7 +453,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-charset-23",
 					Name:       "postcss-normalize-charset",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -414,7 +465,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-unique-selectors-36",
 					Name:       "postcss-unique-selectors",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -424,7 +477,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-reduce-initial-33",
 					Name:       "postcss-reduce-initial",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.3",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -434,7 +489,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-positions-25",
 					Name:       "postcss-normalize-positions",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -444,7 +501,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-discard-duplicates-13",
 					Name:       "postcss-discard-duplicates",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -454,6 +513,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-loader-16",
 					Name:       "postcss-loader",
 					Version:    "3.0.0",
 					PURLType:   purl.TypeNPM,
@@ -464,6 +524,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-cssnano-7",
 					Name:       "cssnano",
 					Version:    "4.1.10",
 					PURLType:   purl.TypeNPM,
@@ -474,7 +535,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-discard-empty-14",
 					Name:       "postcss-discard-empty",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -484,7 +547,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-repeat-style-26",
 					Name:       "postcss-normalize-repeat-style",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -494,7 +559,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-convert-values-11",
 					Name:       "postcss-convert-values",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -504,6 +571,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-friendly-errors-webpack-plugin-8",
 					Name:       "friendly-errors-webpack-plugin",
 					Version:    "1.7.0",
 					PURLType:   purl.TypeNPM,
@@ -514,6 +582,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-@vue/component-compiler-utils-1",
 					Name:       "@vue/component-compiler-utils",
 					Version:    "2.6.0",
 					PURLType:   purl.TypeNPM,
@@ -524,7 +593,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-merge-rules-18",
 					Name:       "postcss-merge-rules",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.3",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -534,7 +605,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-normalize-unicode-29",
 					Name:       "postcss-normalize-unicode",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -544,7 +617,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-minify-font-values-19",
 					Name:       "postcss-minify-font-values",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -554,7 +629,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-minify-gradients-20",
 					Name:       "postcss-minify-gradients",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -564,7 +641,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-cssnano-util-raw-cache-6",
 					Name:       "cssnano-util-raw-cache",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -574,7 +653,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-calc-9",
 					Name:       "postcss-calc",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "7.0.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -584,7 +665,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-discard-comments-12",
 					Name:       "postcss-discard-comments",
+					ParentIDs:  map[string]bool{"id-cssnano-preset-default-5": true},
 					Version:    "4.0.2",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/nested-dependencies-dup.v1.json"),
@@ -602,6 +685,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-@segment/analytics.js-integration-facebook-pixel-1",
 					Name:     "@segment/analytics.js-integration-facebook-pixel",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -614,6 +698,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-ansi-styles-2",
 					Name:       "ansi-styles",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -624,6 +709,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-babel-preset-php-3",
 					Name:     "babel-preset-php",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -636,6 +722,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-1-4",
 					Name:     "is-number-1",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -648,6 +735,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-1-5",
 					Name:     "is-number-1",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -660,6 +748,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-2-7",
 					Name:     "is-number-2",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -672,6 +761,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-2-6",
 					Name:     "is-number-2",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -684,6 +774,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-3-9",
 					Name:     "is-number-3",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -696,6 +787,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-3-8",
 					Name:     "is-number-3",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -708,6 +800,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-4-10",
 					Name:     "is-number-4",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -720,6 +813,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-5-11",
 					Name:     "is-number-5",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -732,6 +826,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-6-12",
 					Name:     "is-number-6",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -744,6 +839,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-calc-13",
 					Name:       "postcss-calc",
 					Version:    "7.0.1",
 					PURLType:   purl.TypeNPM,
@@ -754,6 +850,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-raven-js-14",
 					Name:     "raven-js",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -766,6 +863,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-slick-carousel-15",
 					Name:     "slick-carousel",
 					Version:  "",
 					PURLType: purl.TypeNPM,
@@ -786,7 +884,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-lodash-1",
 					Name:       "lodash",
+					ParentIDs:  map[string]bool{"id-other_package-2": true},
 					Version:    "1.3.1",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPath("testdata/files.v1.json"),
@@ -796,6 +896,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-other_package-2",
 					Name:       "other_package",
 					Version:    "",
 					PURLType:   purl.TypeNPM,
@@ -814,6 +915,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-@babel/code-frame-1",
 					Name:       "@babel/code-frame",
 					Version:    "7.0.0",
 					PURLType:   purl.TypeNPM,
@@ -824,6 +926,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-string-width-3",
 					Name:       "string-width",
 					Version:    "4.2.0",
 					PURLType:   purl.TypeNPM,
@@ -834,6 +937,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-string-width-2",
 					Name:       "string-width",
 					Version:    "5.1.2",
 					PURLType:   purl.TypeNPM,
@@ -852,6 +956,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-wrappy-2",
 					Name:       "wrappy",
 					Version:    "1.0.2",
 					PURLType:   purl.TypeNPM,
@@ -862,6 +967,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-1",
 					Name:       "supports-color",
 					Version:    "5.5.0",
 					PURLType:   purl.TypeNPM,
@@ -880,6 +986,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-eslint-2",
 					Name:       "eslint",
 					Version:    "1.2.3",
 					PURLType:   purl.TypeNPM,
@@ -890,6 +997,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-table-3",
 					Name:       "table",
 					Version:    "1.0.0",
 					PURLType:   purl.TypeNPM,
@@ -900,6 +1008,7 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-ajv-1",
 					Name:       "ajv",
 					Version:    "5.5.2",
 					PURLType:   purl.TypeNPM,
@@ -916,6 +1025,9 @@ func TestNPMLockExtractor_Extract_V1(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			collector := testcollector.New()
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := packagelockjson.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("packagelockjson.New: %v", err)

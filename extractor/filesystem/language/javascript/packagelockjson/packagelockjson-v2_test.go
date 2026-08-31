@@ -54,10 +54,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "wrappy",
-					Version:  "1.0.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/one-package.v2.json"),
+					ID:        "id-wrappy-1",
+					Name:      "wrappy",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/one-package.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -74,10 +76,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "wrappy",
-					Version:  "1.0.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/one-package-dev.v2.json"),
+					ID:        "id-wrappy-1",
+					Name:      "wrappy",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/one-package-dev.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -94,10 +98,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "wrappy",
-					Version:  "1.0.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/two-packages.v2.json"),
+					ID:        "id-wrappy-2",
+					Name:      "wrappy",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/two-packages.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -106,10 +112,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "supports-color",
-					Version:  "5.5.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/two-packages.v2.json"),
+					ID:        "id-supports-color-1",
+					Name:      "supports-color",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "5.5.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/two-packages.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -126,6 +134,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-wrappy-2",
 					Name:     "wrappy",
 					Version:  "1.0.2",
 					PURLType: purl.TypeNPM,
@@ -138,6 +147,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-@babel/code-frame-1",
 					Name:     "@babel/code-frame",
 					Version:  "7.0.0",
 					PURLType: purl.TypeNPM,
@@ -158,6 +168,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-postcss-2",
 					Name:     "postcss",
 					Version:  "6.0.23",
 					PURLType: purl.TypeNPM,
@@ -170,10 +181,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "postcss",
-					Version:  "7.0.16",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/nested-dependencies.v2.json"),
+					ID:        "id-postcss-3",
+					Name:      "postcss",
+					ParentIDs: map[string]bool{"id-postcss-calc-1": true},
+					Version:   "7.0.16",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/nested-dependencies.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -182,6 +195,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-postcss-calc-1",
 					Name:     "postcss-calc",
 					Version:  "7.0.1",
 					PURLType: purl.TypeNPM,
@@ -194,10 +208,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "supports-color",
-					Version:  "6.1.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/nested-dependencies.v2.json"),
+					ID:        "id-supports-color-5",
+					Name:      "supports-color",
+					ParentIDs: map[string]bool{"id-postcss-3": true},
+					Version:   "6.1.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/nested-dependencies.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -206,10 +222,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "supports-color",
-					Version:  "5.5.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/nested-dependencies.v2.json"),
+					ID:        "id-supports-color-4",
+					Name:      "supports-color",
+					ParentIDs: map[string]bool{"id-postcss-2": true},
+					Version:   "5.5.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/nested-dependencies.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -226,6 +244,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-supports-color-2",
 					Name:     "supports-color",
 					Version:  "6.1.0",
 					PURLType: purl.TypeNPM,
@@ -238,6 +257,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-supports-color-1",
 					Name:     "supports-color",
 					Version:  "2.0.0",
 					PURLType: purl.TypeNPM,
@@ -258,10 +278,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "@segment/analytics.js-integration-facebook-pixel",
-					Version:  "2.4.1",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-@segment/analytics.js-integration-facebook-pixel-1",
+					Name:      "@segment/analytics.js-integration-facebook-pixel",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "2.4.1",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "3b1bb80b302c2e552685dc8a029797ec832ea7c9",
 					},
@@ -270,6 +292,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-ansi-styles-2",
 					Name:     "ansi-styles",
 					Version:  "1.0.0",
 					PURLType: purl.TypeNPM,
@@ -282,10 +305,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "babel-preset-php",
-					Version:  "1.1.1",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-babel-preset-php-3",
+					Name:      "babel-preset-php",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.1.1",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "c5a7ba5e0ad98b8db1cb8ce105403dd4b768cced",
 					},
@@ -294,10 +319,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "is-number-1",
-					Version:  "3.0.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-is-number-1-4",
+					Name:      "is-number-1",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "3.0.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "af885e2e890b9ef0875edd2b117305119ee5bdc5",
 					},
@@ -306,6 +333,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-1-5",
 					Name:     "is-number-1",
 					Version:  "3.0.0",
 					PURLType: purl.TypeNPM,
@@ -318,10 +346,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "is-number-2",
-					Version:  "2.0.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-is-number-2-7",
+					Name:      "is-number-2",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "2.0.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
 					},
@@ -330,6 +360,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-2-6",
 					Name:     "is-number-2",
 					Version:  "2.0.0",
 					PURLType: purl.TypeNPM,
@@ -342,10 +373,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "is-number-3",
-					Version:  "2.0.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-is-number-3-9",
+					Name:      "is-number-3",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "2.0.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
 					},
@@ -354,6 +387,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-is-number-3-8",
 					Name:     "is-number-3",
 					Version:  "3.0.0",
 					PURLType: purl.TypeNPM,
@@ -366,10 +400,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "is-number-4",
-					Version:  "3.0.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-is-number-4-10",
+					Name:      "is-number-4",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "3.0.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "af885e2e890b9ef0875edd2b117305119ee5bdc5",
 					},
@@ -378,10 +414,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "is-number-5",
-					Version:  "3.0.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-is-number-5-11",
+					Name:      "is-number-5",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "3.0.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "af885e2e890b9ef0875edd2b117305119ee5bdc5",
 					},
@@ -390,6 +428,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-postcss-calc-12",
 					Name:     "postcss-calc",
 					Version:  "7.0.1",
 					PURLType: purl.TypeNPM,
@@ -402,10 +441,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "raven-js",
-					Version:  "",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-raven-js-13",
+					Name:      "raven-js",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "c2b377e7a254264fd4a1fe328e4e3cfc9e245570",
 					},
@@ -414,10 +455,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "slick-carousel",
-					Version:  "1.7.1",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/commits.v2.json"),
+					ID:        "id-slick-carousel-14",
+					Name:      "slick-carousel",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.7.1",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/commits.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "280b560161b751ba226d50c7db1e0a14a78c2de0",
 					},
@@ -434,6 +477,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-etag-3",
 					Name:     "etag",
 					Version:  "1.8.0",
 					PURLType: purl.TypeNPM,
@@ -446,6 +490,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-abbrev-1",
 					Name:     "abbrev",
 					Version:  "1.0.9",
 					PURLType: purl.TypeNPM,
@@ -458,6 +503,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-abbrev-2",
 					Name:     "abbrev",
 					Version:  "2.3.4",
 					PURLType: purl.TypeNPM,
@@ -478,10 +524,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "@babel/code-frame",
-					Version:  "7.0.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/alias.v2.json"),
+					ID:        "id-@babel/code-frame-1",
+					Name:      "@babel/code-frame",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "7.0.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/alias.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -490,10 +538,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "string-width",
-					Version:  "4.2.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/alias.v2.json"),
+					ID:        "id-string-width-2",
+					Name:      "string-width",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "4.2.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/alias.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -502,10 +552,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "string-width",
-					Version:  "5.1.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/alias.v2.json"),
+					ID:        "id-string-width-3",
+					Name:      "string-width",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "5.1.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/alias.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -522,10 +574,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "wrappy",
-					Version:  "1.0.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/optional-package.v2.json"),
+					ID:        "id-wrappy-2",
+					Name:      "wrappy",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/optional-package.v2.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -534,6 +588,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-supports-color-1",
 					Name:     "supports-color",
 					Version:  "5.5.0",
 					PURLType: purl.TypeNPM,
@@ -554,6 +609,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:       "id-eslint-2",
 					Name:     "eslint",
 					Version:  "1.2.3",
 					PURLType: purl.TypeNPM,
@@ -566,6 +622,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-table-3",
 					Name:     "table",
 					Version:  "1.0.0",
 					PURLType: purl.TypeNPM,
@@ -578,6 +635,7 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
+					ID:       "id-ajv-1",
 					Name:     "ajv",
 					Version:  "5.5.2",
 					PURLType: purl.TypeNPM,
@@ -598,10 +656,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "ansi-regex",
-					Version:  "6.2.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/bundled-dependencies.v3.json"),
+					ID:        "id-ansi-regex-1",
+					Name:      "ansi-regex",
+					ParentIDs: map[string]bool{"id-strip-ansi-3": true},
+					Version:   "6.2.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/bundled-dependencies.v3.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -610,10 +670,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "semver",
-					Version:  "7.7.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/bundled-dependencies.v3.json"),
+					ID:        "id-semver-2",
+					Name:      "semver",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "7.7.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/bundled-dependencies.v3.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -622,10 +684,12 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 					},
 				},
 				{
-					Name:     "strip-ansi",
-					Version:  "7.1.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPath("testdata/bundled-dependencies.v3.json"),
+					ID:        "id-strip-ansi-3",
+					Name:      "strip-ansi",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "7.1.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPath("testdata/bundled-dependencies.v3.json"),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -640,6 +704,9 @@ func TestNPMLockExtractor_Extract_V2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			collector := testcollector.New()
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := packagelockjson.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("packagelockjson.New: %v", err)

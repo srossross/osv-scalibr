@@ -1,0 +1,11 @@
+{
+  "name": "yarn-nested",
+  "version": "1.0.0",
+  "dependencies": {
+    "supports-color": "^5.0.0",
+    "not-in-lockfile": "^1.0.0"
+  },
+  "devDependencies": {
+    "chalk": "^4.0.0"
+  }
+}

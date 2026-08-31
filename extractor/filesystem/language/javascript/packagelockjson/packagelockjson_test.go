@@ -15,6 +15,7 @@
 package packagelockjson_test
 
 import (
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"testing"
@@ -35,6 +36,15 @@ import (
 
 	cpb "github.com/google/osv-scalibr/binary/proto/config_go_proto"
 )
+
+// testIDGenerator produces IDs unique across duplicate package names, unlike
+// mockidgenerator, and resettable per subtest, unlike SequentialIDGenerator.
+type testIDGenerator struct{ counter int }
+
+func (g *testIDGenerator) GenerateID(name string) (string, error) {
+	g.counter++
+	return fmt.Sprintf("id-%s-%d", name, g.counter), nil
+}
 
 func TestExtractor_FileRequired(t *testing.T) {
 	tests := []struct {
@@ -200,6 +210,9 @@ func TestMetricCollector(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			collector := testcollector.New()
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := packagelockjson.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("packagelockjson.New: %v", err)
@@ -248,10 +261,12 @@ func TestExtractor_Extract_Shrinkwrap_JSON(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "wrappy",
-					Version:  "1.0.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPathAndLine("testdata/package-lock-only/package-lock.json", 13),
+					ID:        "id-wrappy-2",
+					Name:      "wrappy",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPathAndLine("testdata/package-lock-only/package-lock.json", 13),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -260,10 +275,12 @@ func TestExtractor_Extract_Shrinkwrap_JSON(t *testing.T) {
 					},
 				},
 				{
-					Name:     "supports-color",
-					Version:  "5.5.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPathAndLine("testdata/package-lock-only/package-lock.json", 18),
+					ID:        "id-supports-color-1",
+					Name:      "supports-color",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "5.5.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPathAndLine("testdata/package-lock-only/package-lock.json", 18),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -280,10 +297,12 @@ func TestExtractor_Extract_Shrinkwrap_JSON(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "wrappy",
-					Version:  "1.0.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPathAndLine("testdata/npm-shrinkwrap-only/npm-shrinkwrap.json", 13),
+					ID:        "id-wrappy-2",
+					Name:      "wrappy",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPathAndLine("testdata/npm-shrinkwrap-only/npm-shrinkwrap.json", 13),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -292,10 +311,12 @@ func TestExtractor_Extract_Shrinkwrap_JSON(t *testing.T) {
 					},
 				},
 				{
-					Name:     "supports-color",
-					Version:  "5.5.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPathAndLine("testdata/npm-shrinkwrap-only/npm-shrinkwrap.json", 18),
+					ID:        "id-supports-color-1",
+					Name:      "supports-color",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "5.5.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPathAndLine("testdata/npm-shrinkwrap-only/npm-shrinkwrap.json", 18),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -319,10 +340,12 @@ func TestExtractor_Extract_Shrinkwrap_JSON(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
-					Name:     "wrappy",
-					Version:  "1.0.2",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPathAndLine("testdata/both/npm-shrinkwrap.json", 13),
+					ID:        "id-wrappy-2",
+					Name:      "wrappy",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "1.0.2",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPathAndLine("testdata/both/npm-shrinkwrap.json", 13),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -331,10 +354,12 @@ func TestExtractor_Extract_Shrinkwrap_JSON(t *testing.T) {
 					},
 				},
 				{
-					Name:     "supports-color",
-					Version:  "5.5.0",
-					PURLType: purl.TypeNPM,
-					Location: extractor.LocationFromPathAndLine("testdata/both/npm-shrinkwrap.json", 18),
+					ID:        "id-supports-color-1",
+					Name:      "supports-color",
+					ParentIDs: map[string]bool{"root": true},
+					Version:   "5.5.0",
+					PURLType:  purl.TypeNPM,
+					Location:  extractor.LocationFromPathAndLine("testdata/both/npm-shrinkwrap.json", 18),
 					SourceCode: &extractor.SourceCodeIdentifier{
 						Commit: "",
 					},
@@ -349,6 +374,9 @@ func TestExtractor_Extract_Shrinkwrap_JSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			collector := testcollector.New()
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := packagelockjson.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("packagelockjson.New: %v", err)
@@ -387,6 +415,7 @@ func TestExtractor_Extract_V1_LineNumbers(t *testing.T) {
 			},
 			WantPackages: []*extractor.Package{
 				{
+					ID:         "id-postcss-2",
 					Name:       "postcss",
 					Version:    "6.0.23",
 					PURLType:   purl.TypeNPM,
@@ -397,6 +426,7 @@ func TestExtractor_Extract_V1_LineNumbers(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-calc-1",
 					Name:       "postcss-calc",
 					Version:    "7.0.1",
 					PURLType:   purl.TypeNPM,
@@ -407,7 +437,9 @@ func TestExtractor_Extract_V1_LineNumbers(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-postcss-3",
 					Name:       "postcss",
+					ParentIDs:  map[string]bool{"id-postcss-calc-1": true},
 					Version:    "7.0.16",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/nested-dependencies.v1.json", 26),
@@ -417,7 +449,9 @@ func TestExtractor_Extract_V1_LineNumbers(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-5",
 					Name:       "supports-color",
+					ParentIDs:  map[string]bool{"id-postcss-3": true},
 					Version:    "6.1.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/nested-dependencies.v1.json", 36),
@@ -427,7 +461,9 @@ func TestExtractor_Extract_V1_LineNumbers(t *testing.T) {
 					},
 				},
 				{
+					ID:         "id-supports-color-4",
 					Name:       "supports-color",
+					ParentIDs:  map[string]bool{"id-postcss-2": true},
 					Version:    "5.5.0",
 					PURLType:   purl.TypeNPM,
 					Location:   extractor.LocationFromPathAndLine("testdata/nested-dependencies.v1.json", 46),
@@ -443,6 +479,9 @@ func TestExtractor_Extract_V1_LineNumbers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			collector := testcollector.New()
+			extractor.SetIDGenerator(&testIDGenerator{})
+			t.Cleanup(func() { extractor.SetIDGenerator(&extractor.RandomIDGenerator{}) })
+
 			extr, err := packagelockjson.New(&cpb.PluginConfig{})
 			if err != nil {
 				t.Fatalf("packagelockjson.New: %v", err)

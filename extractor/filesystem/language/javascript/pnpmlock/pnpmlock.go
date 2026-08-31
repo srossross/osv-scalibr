@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -28,6 +29,7 @@ import (
 
 	"github.com/google/osv-scalibr/extractor"
 	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/internal/depgraph"
 	"github.com/google/osv-scalibr/extractor/filesystem/osv"
 	"github.com/google/osv-scalibr/inventory"
 	"github.com/google/osv-scalibr/log"
@@ -55,34 +57,89 @@ type pnpmLockPackage struct {
 	Name       string                    `yaml:"name"`
 	Version    string                    `yaml:"version"`
 	Dev        bool                      `yaml:"dev"`
+	// Dependencies of this package, in v5 and v6 lockfiles. v9 moved them to
+	// the snapshots section.
+	Dependencies         map[string]string `yaml:"dependencies,omitempty"`
+	OptionalDependencies map[string]string `yaml:"optionalDependencies,omitempty"`
+}
+
+// pnpmSnapshot is a v9 snapshots entry, which holds the resolved dependencies
+// that earlier lockfile versions kept on the package entry.
+type pnpmSnapshot struct {
+	Dependencies         map[string]string `yaml:"dependencies,omitempty"`
+	OptionalDependencies map[string]string `yaml:"optionalDependencies,omitempty"`
+}
+
+// pnpmRootDep is a direct dependency of the project. v5 records the resolved
+// version as a bare string, v6 and v9 as a {specifier, version} mapping.
+type pnpmRootDep struct {
+	Version string
+}
+
+// UnmarshalYAML accepts either lockfile spelling of a direct dependency.
+func (d *pnpmRootDep) UnmarshalYAML(unmarshal func(any) error) error {
+	var version string
+	if err := unmarshal(&version); err == nil {
+		d.Version = version
+		return nil
+	}
+
+	var obj struct {
+		Version string `yaml:"version"`
+	}
+	if err := unmarshal(&obj); err != nil {
+		return err
+	}
+	d.Version = obj.Version
+
+	return nil
+}
+
+// pnpmImporter is a workspace member's direct dependencies.
+type pnpmImporter struct {
+	Dependencies    map[string]pnpmRootDep `yaml:"dependencies,omitempty"`
+	DevDependencies map[string]pnpmRootDep `yaml:"devDependencies,omitempty"`
 }
 
 type pnpmLockfile struct {
-	Version  float64                    `yaml:"lockfileVersion"`
-	Packages map[string]pnpmLockPackage `yaml:"packages,omitempty"`
+	Version   float64
+	Packages  map[string]pnpmLockPackage
+	Snapshots map[string]pnpmSnapshot
+	Importers map[string]pnpmImporter
+	// Root holds the top-level direct dependencies of v5 and v6 lockfiles,
+	// which predate the importers section.
+	Root pnpmImporter
 }
 
-type pnpmLockfileV6 struct {
-	Version  string                     `yaml:"lockfileVersion"`
-	Packages map[string]pnpmLockPackage `yaml:"packages,omitempty"`
+type pnpmLockfileRaw struct {
+	Version         string                     `yaml:"lockfileVersion"`
+	Packages        map[string]pnpmLockPackage `yaml:"packages,omitempty"`
+	Snapshots       map[string]pnpmSnapshot    `yaml:"snapshots,omitempty"`
+	Importers       map[string]pnpmImporter    `yaml:"importers,omitempty"`
+	Dependencies    map[string]pnpmRootDep     `yaml:"dependencies,omitempty"`
+	DevDependencies map[string]pnpmRootDep     `yaml:"devDependencies,omitempty"`
 }
 
-// UnmarshalYAML is a custom unmarshalling function for handling v6 lockfiles.
+// UnmarshalYAML is a custom unmarshalling function for handling the lockfile
+// version, which v6 quotes as a string.
 func (l *pnpmLockfile) UnmarshalYAML(unmarshal func(any) error) error {
-	var lockfileV6 pnpmLockfileV6
+	var raw pnpmLockfileRaw
 
-	if err := unmarshal(&lockfileV6); err != nil {
+	if err := unmarshal(&raw); err != nil {
 		return err
 	}
 
-	parsedVersion, err := strconv.ParseFloat(lockfileV6.Version, 64)
+	parsedVersion, err := strconv.ParseFloat(raw.Version, 64)
 
 	if err != nil {
 		return err
 	}
 
 	l.Version = parsedVersion
-	l.Packages = lockfileV6.Packages
+	l.Packages = raw.Packages
+	l.Snapshots = raw.Snapshots
+	l.Importers = raw.Importers
+	l.Root = pnpmImporter{Dependencies: raw.Dependencies, DevDependencies: raw.DevDependencies}
 
 	return nil
 }
@@ -170,9 +227,12 @@ func parseNameAtVersion(value string) (name string, version string) {
 
 func parsePnpmLock(lockfile pnpmLockfile, packageLineMap map[string]int, path string) ([]*extractor.Package, error) {
 	packages := make([]*extractor.Package, 0, len(lockfile.Packages))
+	pkgByKey := make(map[string]*extractor.Package, len(lockfile.Packages))
 	errs := []error{}
 
-	for s, pkg := range lockfile.Packages {
+	// Iterate in key order so that extraction is deterministic.
+	for _, s := range slices.Sorted(maps.Keys(lockfile.Packages)) {
+		pkg := lockfile.Packages[s]
 		name, version, err := extractPnpmPackageNameAndVersion(s, lockfile.Version)
 		if err != nil {
 			errs = append(errs, err)
@@ -212,7 +272,7 @@ func parsePnpmLock(lockfile pnpmLockfile, packageLineMap map[string]int, path st
 		}
 
 		lineNum := packageLineMap[s]
-		packages = append(packages, &extractor.Package{
+		p := &extractor.Package{
 			Name:     name,
 			Version:  version,
 			PURLType: purl.TypeNPM,
@@ -223,10 +283,87 @@ func parsePnpmLock(lockfile pnpmLockfile, packageLineMap map[string]int, path st
 				DepGroupVals: depGroups,
 			},
 			Location: extractor.LocationFromPathAndLine(path, lineNum),
-		})
+		}
+		packages = append(packages, p)
+		pkgByKey[s] = p
+	}
+
+	if err := depgraph.ApplyEdges(packages, pnpmEdges(lockfile, pkgByKey)); err != nil {
+		errs = append(errs, err)
 	}
 
 	return packages, errors.Join(errs...)
+}
+
+// pnpmEdges resolves the lockfile's dependency declarations against the keys of
+// the emitted packages. pnpm dependency paths are globally unique, so a
+// declaration names its instance outright and no install-tree walk is needed.
+func pnpmEdges(lockfile pnpmLockfile, pkgByKey map[string]*extractor.Package) []depgraph.Edge {
+	var edges []depgraph.Edge
+
+	addEdges := func(parent *extractor.Package, deps ...map[string]string) {
+		for _, m := range deps {
+			for _, name := range slices.Sorted(maps.Keys(m)) {
+				if child, ok := pkgByKey[pnpmDepKey(name, m[name], lockfile.Version)]; ok && child != parent {
+					edges = append(edges, depgraph.Edge{Parent: parent, Child: child})
+				}
+			}
+		}
+	}
+
+	// v9 records resolved dependencies under snapshots, keyed like the packages
+	// entries but with the peer suffix retained.
+	for _, key := range slices.Sorted(maps.Keys(lockfile.Snapshots)) {
+		snapshot := lockfile.Snapshots[key]
+		addEdges(pkgByKey[stripPnpmPeerSuffix(key)], snapshot.Dependencies, snapshot.OptionalDependencies)
+	}
+
+	// v5 and v6 record them on the package entry itself.
+	for _, key := range slices.Sorted(maps.Keys(lockfile.Packages)) {
+		pkg := lockfile.Packages[key]
+		addEdges(pkgByKey[key], pkg.Dependencies, pkg.OptionalDependencies)
+	}
+
+	// Direct dependencies: importers in v6 and v9, the top level in v5. Only
+	// the root importer is a direct dependency of the scanned project.
+	roots := []pnpmImporter{lockfile.Root}
+	if root, ok := lockfile.Importers["."]; ok {
+		roots = append(roots, root)
+	}
+	for _, importer := range roots {
+		for _, m := range []map[string]pnpmRootDep{importer.Dependencies, importer.DevDependencies} {
+			for _, name := range slices.Sorted(maps.Keys(m)) {
+				if child, ok := pkgByKey[pnpmDepKey(name, m[name].Version, lockfile.Version)]; ok {
+					edges = append(edges, depgraph.Edge{Child: child})
+				}
+			}
+		}
+	}
+
+	return edges
+}
+
+// pnpmDepKey builds the packages-section key that a name and resolved version
+// refer to. v9 keys read "name@version", earlier ones "/name/version" (v5) and
+// "/name@version" (v6).
+func pnpmDepKey(name, version string, lockfileVersion float64) string {
+	switch {
+	case lockfileVersion >= 9.0:
+		return name + "@" + stripPnpmPeerSuffix(version)
+	case lockfileVersion >= 6.0:
+		return "/" + name + "@" + version
+	default:
+		return "/" + name + "/" + version
+	}
+}
+
+// stripPnpmPeerSuffix removes the "(peer@version)" suffixes that v9 appends to
+// snapshot keys and resolved versions; the packages section omits them.
+func stripPnpmPeerSuffix(s string) string {
+	if i := strings.Index(s, "("); i != -1 {
+		return s[:i]
+	}
+	return s
 }
 
 // Extractor extracts pnpm-lock.yaml files.
